@@ -181,7 +181,6 @@ export default function AdminVendors() {
   const [createTrialDays, setCreateTrialDays] = useState('7');
   const [createCustomDays, setCreateCustomDays] = useState('');
   const [createReason, setCreateReason] = useState('');
-  const [avatarUploading, setAvatarUploading] = useState(false);
   const [createdResult, setCreatedResult] = useState<{
     vendor: { id: string; name: string; email: string; phone?: string | null };
     shop: { id: string; name: string; slug: string };
@@ -290,29 +289,6 @@ export default function AdminVendors() {
     setCreateForm((f) => ({ ...f, password: pwd }));
     setShowCreatePassword(true);
     toast.success('Mot de passe généré');
-  };
-
-  // Handle profile photo upload (base64 fallback — no /api/upload endpoint exists)
-  const handleAvatarUpload = (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      toast.error('Veuillez sélectionner une image');
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image trop volumineuse (max 5 Mo)');
-      return;
-    }
-    setAvatarUploading(true);
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setCreateForm((f) => ({ ...f, avatar: reader.result as string }));
-      setAvatarUploading(false);
-    };
-    reader.onerror = () => {
-      toast.error('Erreur lors de la lecture de l\'image');
-      setAvatarUploading(false);
-    };
-    reader.readAsDataURL(file);
   };
 
   // Copy helper for the success dialog
@@ -1392,51 +1368,6 @@ export default function AdminVendors() {
                 </DialogHeader>
 
                 <div className="space-y-5 py-2">
-                  {/* Profile photo upload */}
-                  <div className="flex items-center gap-4">
-                    <div className="relative">
-                      {createForm.avatar ? (
-                        <img
-                          src={createForm.avatar}
-                          alt="Aperçu"
-                          className="h-20 w-20 rounded-full object-cover border-2 border-emerald-500/50"
-                        />
-                      ) : (
-                        <div className="h-20 w-20 rounded-full bg-[#0f172a] border-2 border-dashed border-[#334155] flex items-center justify-center">
-                          <ImageIcon className="h-7 w-7 text-slate-600" />
-                        </div>
-                      )}
-                      {createForm.avatar && (
-                        <button
-                          type="button"
-                          onClick={() => setCreateForm((f) => ({ ...f, avatar: '' }))}
-                          className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center text-xs"
-                          aria-label="Supprimer la photo"
-                        >
-                          ×
-                        </button>
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <Label className="text-slate-300 text-sm font-medium">Photo de profil</Label>
-                      <p className="text-xs text-slate-500 mb-2">Optionnel — le vendeur pourra la changer plus tard</p>
-                      <label className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#0f172a] border border-[#334155] hover:border-emerald-500 rounded-lg cursor-pointer text-sm text-slate-300 transition-colors">
-                        <ImageIcon className="h-4 w-4" />
-                        {avatarUploading ? 'Chargement...' : 'Choisir une image'}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) handleAvatarUpload(file);
-                            e.target.value = '';
-                          }}
-                        />
-                      </label>
-                    </div>
-                  </div>
-
                   {/* Name + Email */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">

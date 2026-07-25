@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
-import { uploadImage } from '@/lib/upload';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,7 +25,6 @@ import {
 import {
   ArrowLeft,
   User,
-  Camera,
   Save,
   Trash2,
   Loader2,
@@ -69,8 +67,6 @@ export default function ClientProfile() {
   const [city, setCity] = useState((user as any)?.city || '');
   const [country, setCountry] = useState((user as any)?.country || '');
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [message, setMessage] = useState<{
     type: 'success' | 'error';
     text: string;
@@ -89,7 +85,6 @@ export default function ClientProfile() {
   } | null>(null);
 
   const [deleting, setDeleting] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (user) {
@@ -115,49 +110,6 @@ export default function ClientProfile() {
         setMessage(null);
       }
     }, 4000);
-  };
-
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !token) return;
-
-    // Keep the live preview while we upload (uses base64 locally so the user
-    // sees their selection immediately, even before the network round-trip).
-    const previewReader = new FileReader();
-    previewReader.onload = (ev) => setAvatarPreview(ev.target?.result as string);
-    previewReader.readAsDataURL(file);
-
-    setUploading(true);
-    try {
-      // uploadImage tries /api/upload first, then falls back to base64.
-      const avatarUrl = await uploadImage(file);
-
-      // Persist the avatar (either the /uploads/... URL or the data URL) to the
-      // backend via PUT /api/auth.
-      const updateRes = await fetch('/api/auth', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ avatar: avatarUrl }),
-      });
-      if (updateRes.ok) {
-        const updatedData = await updateRes.json();
-        if (updatedData.user) {
-          setUser(updatedData.user, token);
-        }
-        // Preview no longer needed once the persisted avatar is in state.
-        setAvatarPreview(null);
-        showMessage('success', 'Photo de profil mise à jour');
-      } else {
-        showMessage('error', 'Erreur lors de la mise à jour du profil');
-      }
-    } catch {
-      showMessage('error', 'Erreur de connexion');
-    } finally {
-      setUploading(false);
-    }
   };
 
   const handleSave = async () => {

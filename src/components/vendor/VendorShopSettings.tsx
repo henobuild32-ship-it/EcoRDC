@@ -43,6 +43,9 @@ import {
   MapPin,
   Globe,
   Trash2,
+  User,
+  Mail,
+  Phone,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -77,7 +80,7 @@ const cities = [
 ];
 
 export default function VendorShopSettings() {
-  const { user, token, setCurrentView } = useAppStore();
+  const { user, token, setCurrentView, setUser } = useAppStore();
   const [shop, setShop] = useState<Shop | null>(null);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
@@ -87,13 +90,20 @@ export default function VendorShopSettings() {
   const [city, setCity] = useState('');
   const [country, setCountry] = useState('RDC');
   const [logo, setLogo] = useState<string>('');
-  const [coverImage, setCoverImage] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [uploadingCover, setUploadingCover] = useState(false);
   const [requestingBadge, setRequestingBadge] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // Vendor personal info
+  const [userName, setUserName] = useState(user?.name || '');
+  const [userEmail, setUserEmail] = useState(user?.email || '');
+  const [userPhone, setUserPhone] = useState(user?.phone || '');
+  const [userAddress, setUserAddress] = useState((user as any)?.address || '');
+  const [userCity, setUserCity] = useState((user as any)?.city || '');
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileMessage, setProfileMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -116,7 +126,6 @@ export default function VendorShopSettings() {
             setCity((myShop as any).city || '');
             setCountry((myShop as any).country || 'RD Congo');
             setLogo(myShop.logo || '');
-            setCoverImage(myShop.coverImage || '');
           }
         }
       } catch {
@@ -145,23 +154,6 @@ export default function VendorShopSettings() {
     }
   };
 
-  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingCover(true);
-    try {
-      // uploadImage tries /api/upload first, then falls back to base64.
-      const url = await uploadImage(file);
-      setCoverImage(url);
-      toast.success('Image de couverture mise à jour');
-    } catch {
-      setMessage({ type: 'error', text: 'Erreur lors du téléchargement' });
-      toast.error('Erreur lors du téléchargement de la couverture');
-    } finally {
-      setUploadingCover(false);
-    }
-  };
-
   const handleSave = async () => {
     if (!token || !shop) return;
     setSaving(true);
@@ -177,7 +169,6 @@ export default function VendorShopSettings() {
           name,
           description,
           logo,
-          coverImage,
           category,
           address,
           city,
@@ -198,6 +189,42 @@ export default function VendorShopSettings() {
     } finally {
       setSaving(false);
       setTimeout(() => setMessage(null), 3000);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!token) return;
+    setSavingProfile(true);
+    setProfileMessage(null);
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: userName,
+          email: userEmail,
+          phone: userPhone,
+          address: userAddress,
+          city: userCity,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) setUser(data.user, token);
+        setProfileMessage({ type: 'success', text: 'Profil mis à jour' });
+        toast.success('Profil mis à jour');
+      } else {
+        const data = await res.json();
+        setProfileMessage({ type: 'error', text: data.error || 'Erreur' });
+      }
+    } catch {
+      setProfileMessage({ type: 'error', text: 'Erreur de connexion' });
+    } finally {
+      setSavingProfile(false);
+      setTimeout(() => setProfileMessage(null), 3000);
     }
   };
 
@@ -301,39 +328,11 @@ export default function VendorShopSettings() {
         </div>
       </motion.div>
 
-      {/* Cover Image */}
+      {/* Logo + Link */}
       <motion.div variants={itemVariants}>
         <Card className="overflow-hidden">
-          <div className="h-40 sm:h-56 bg-gradient-to-br from-emerald-400 to-green-600 relative group">
-            {coverImage && (
-              <img
-                src={coverImage}
-                alt="Couverture"
-                className="w-full h-full object-cover"
-              />
-            )}
-            <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-              <div className="text-center text-white">
-                {uploadingCover ? (
-                  <Loader2 className="h-8 w-8 mx-auto animate-spin" />
-                ) : (
-                  <>
-                    <Camera className="h-8 w-8 mx-auto" />
-                    <p className="text-sm mt-1">Changer la couverture</p>
-                  </>
-                )}
-              </div>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleCoverUpload}
-                className="hidden"
-                disabled={uploadingCover}
-              />
-            </label>
-          </div>
           <CardContent className="p-4">
-            <div className="flex items-end gap-4 -mt-12 relative z-10">
+            <div className="flex items-center gap-4">
               <div className="relative group/logo">
                 <div className="h-20 w-20 rounded-2xl bg-white shadow-lg border-2 border-white overflow-hidden">
                   {logo ? (
@@ -362,6 +361,10 @@ export default function VendorShopSettings() {
                     disabled={uploadingLogo}
                   />
                 </label>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">Logo de la boutique</p>
+                <p className="text-xs text-muted-foreground">Cliquez pour changer</p>
               </div>
             </div>
           </CardContent>
@@ -520,6 +523,118 @@ export default function VendorShopSettings() {
                 Annuler
               </Button>
             </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Personal Info */}
+      <motion.div variants={itemVariants}>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <User className="h-5 w-5 text-emerald-600" />
+              Informations personnelles
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="user-name">Nom complet</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="user-name"
+                    value={userName}
+                    onChange={(e) => setUserName(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="user-email">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="user-email"
+                    type="email"
+                    value={userEmail}
+                    onChange={(e) => setUserEmail(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="user-phone">Téléphone</Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="user-phone"
+                    value={userPhone}
+                    onChange={(e) => setUserPhone(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="user-address">Adresse</Label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="user-address"
+                    value={userAddress}
+                    onChange={(e) => setUserAddress(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Ville</Label>
+              <Select value={userCity} onValueChange={setUserCity}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cities.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {profileMessage && (
+              <div
+                className={`p-3 rounded-lg text-sm ${
+                  profileMessage.type === 'success'
+                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300'
+                    : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'
+                }`}
+              >
+                {profileMessage.text}
+              </div>
+            )}
+
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700"
+              onClick={handleSaveProfile}
+              disabled={savingProfile}
+            >
+              {savingProfile ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Enregistrement...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Enregistrer le profil
+                </>
+              )}
+            </Button>
           </CardContent>
         </Card>
       </motion.div>
