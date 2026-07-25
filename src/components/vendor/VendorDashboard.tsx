@@ -283,18 +283,25 @@ export default function VendorDashboard() {
     return 'Bonsoir';
   }, []);
 
-  const shopUrl = user?.shop?.slug
-    ? `${window.location.origin}/shop/${user.shop.slug}`
-    : '';
-
   const handleCopyLink = async () => {
+    const url = user?.shop?.slug
+      ? `${window.location.origin}/shop/${user.shop.slug}`
+      : '';
+    if (!url) return;
     try {
-      await navigator.clipboard.writeText(shopUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(url);
     } catch {
-      // Fallback
+      const textarea = document.createElement('textarea');
+      textarea.value = url;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
     }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const statCards = [

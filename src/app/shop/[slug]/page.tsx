@@ -61,19 +61,31 @@ export default function PublicShopPage() {
   const [showContactModal, setShowContactModal] = useState(false);
 
   useEffect(() => {
-    if (!slug) return;
+    if (!slug) {
+      setError('Boutique non spécifiée');
+      setLoading(false);
+      return;
+    }
 
     const fetchShop = async () => {
       try {
-        const res = await fetch(`/api/shops?slug=${slug}`);
+        const res = await fetch(`/api/shops?slug=${encodeURIComponent(slug)}`);
         if (!res.ok) {
-          setError('Boutique non trouvée');
+          if (res.status === 404) {
+            setError('Cette boutique n\'existe pas');
+          } else {
+            setError('Erreur lors du chargement de la boutique');
+          }
           return;
         }
         const data = await res.json();
+        if (!data.shop) {
+          setError('Boutique introuvable');
+          return;
+        }
         setShop(data.shop);
       } catch {
-        setError('Erreur lors du chargement');
+        setError('Erreur de connexion. Veuillez réessayer.');
       } finally {
         setLoading(false);
       }

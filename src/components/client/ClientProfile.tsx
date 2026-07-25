@@ -87,6 +87,20 @@ export default function ClientProfile() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
+    // Restore session from localStorage if store is empty
+    if (!token) {
+      const savedToken = localStorage.getItem('ecordc_token');
+      const savedUser = localStorage.getItem('ecordc_user');
+      if (savedToken && savedUser) {
+        try {
+          const parsed = JSON.parse(savedUser);
+          setUser(parsed, savedToken);
+        } catch { /* ignore */ }
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     if (user) {
       setName(user.name);
       setEmail(user.email);

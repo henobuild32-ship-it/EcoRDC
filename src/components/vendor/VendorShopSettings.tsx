@@ -80,7 +80,7 @@ const cities = [
 ];
 
 export default function VendorShopSettings() {
-  const { user, token, setCurrentView, setUser } = useAppStore();
+  const { user, token, setCurrentView, setUser, setCurrentView: setView } = useAppStore();
   const [shop, setShop] = useState<Shop | null>(null);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
@@ -97,13 +97,27 @@ export default function VendorShopSettings() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Vendor personal info
-  const [userName, setUserName] = useState(user?.name || '');
-  const [userEmail, setUserEmail] = useState(user?.email || '');
-  const [userPhone, setUserPhone] = useState(user?.phone || '');
-  const [userAddress, setUserAddress] = useState((user as any)?.address || '');
-  const [userCity, setUserCity] = useState((user as any)?.city || '');
+  const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+  const [userPhone, setUserPhone] = useState('');
+  const [userAddress, setUserAddress] = useState('');
+  const [userCity, setUserCity] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMessage, setProfileMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Restore session from localStorage if store is empty
+  useEffect(() => {
+    if (!token) {
+      const savedToken = localStorage.getItem('ecordc_token');
+      const savedUser = localStorage.getItem('ecordc_user');
+      if (savedToken && savedUser) {
+        try {
+          const parsed = JSON.parse(savedUser);
+          setUser(parsed, savedToken);
+        } catch { /* ignore */ }
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (!token) return;
@@ -166,7 +180,14 @@ export default function VendorShopSettings() {
   };
 
   const handleSave = async () => {
-    if (!token || !shop) return;
+    if (!token) {
+      setMessage({ type: 'error', text: 'Vous devez être connecté' });
+      return;
+    }
+    if (!shop) {
+      setMessage({ type: 'error', text: 'Aucune boutique trouvée' });
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch('/api/shops', {
@@ -204,7 +225,14 @@ export default function VendorShopSettings() {
   };
 
   const handleSaveProfile = async () => {
-    if (!token) return;
+    if (!token) {
+      setProfileMessage({ type: 'error', text: 'Vous devez être connecté' });
+      return;
+    }
+    if (!userName.trim()) {
+      setProfileMessage({ type: 'error', text: 'Le nom est requis' });
+      return;
+    }
     setSavingProfile(true);
     setProfileMessage(null);
     try {
