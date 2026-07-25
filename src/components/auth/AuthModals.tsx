@@ -752,6 +752,7 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
           email: email.trim(),
           password,
           name: name.trim(),
+          avatar: avatar || undefined,
           phone: phone.trim() || undefined,
           address: address.trim() || undefined,
           city: city.trim() || undefined,
@@ -767,14 +768,10 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
         return;
       }
 
-      setRegistrationSuccess(true);
-
-      setTimeout(() => {
-        setUser(data.user, data.token);
-        setCurrentView('client-dashboard');
-        onOpenChange(false);
-        resetForm();
-      }, 2000);
+      setUser(data.user, data.token);
+      setCurrentView('client-dashboard');
+      onOpenChange(false);
+      resetForm();
     } catch {
       setError('Erreur de connexion au serveur. Veuillez réessayer.');
     } finally {
@@ -816,15 +813,10 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
         return;
       }
 
-      setRegistrationSuccess(true);
-
-      setTimeout(() => {
-        setUser(data.user, data.token);
-        refreshUser();
-        setCurrentView('vendor-dashboard');
-        onOpenChange(false);
-        resetForm();
-      }, 2000);
+      setUser(data.user, data.token);
+      setCurrentView('vendor-dashboard');
+      onOpenChange(false);
+      resetForm();
     } catch {
       setError('Erreur de connexion au serveur. Veuillez réessayer.');
     } finally {
@@ -1148,6 +1140,17 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
                   {currentStep === 1 && (
                     /* ---- Step 1: Personal Info ---- */
                     <>
+                      {/* Avatar */}
+                      <div className="flex justify-center">
+                        <ImageUploadZone
+                          label="Photo de profil (optionnel)"
+                          imageUrl={avatar}
+                          onImageSet={setAvatar}
+                          onImageClear={() => setAvatar('')}
+                          size="lg"
+                        />
+                      </div>
+
                       {/* Name */}
                       <div className="space-y-2">
                         <Label htmlFor="reg-name" className="text-sm font-medium">

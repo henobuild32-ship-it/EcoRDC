@@ -182,7 +182,9 @@ export async function GET(request: NextRequest) {
         include: {
           shop: {
             select: {
-              id: true, name: true, slug: true, logo: true, category: true, city: true,
+              id: true, name: true, slug: true, logo: true, category: true,
+              city: true, country: true, phone: true, email: true,
+              commune: true, hours: true, socials: true, currency: true,
               isRecommended: true, isActive: true, badges: true,
               suspensionType: true, suspensionReason: true, suspendedUntil: true,
               _count: { select: { products: true, followers: true, orders: true } },
@@ -1093,6 +1095,7 @@ export async function POST(request: NextRequest) {
       const {
         name, email, password, phone, city, country, avatar,
         shopName, shopDescription, shopCategory, shopAddress, shopCity, shopCountry,
+        shopPhone, shopEmail, shopCommune, shopHours, shopSocials, shopCurrency,
         durationDays, reason,
       } = body;
 
@@ -1170,6 +1173,12 @@ export async function POST(request: NextRequest) {
           address: shopAddress?.trim() || null,
           city: shopCity?.trim() || city?.trim() || null,
           country: shopCountry?.trim() || country?.trim() || null,
+          phone: shopPhone?.trim() || null,
+          email: shopEmail?.trim() || null,
+          commune: shopCommune?.trim() || null,
+          hours: shopHours?.trim() || null,
+          socials: shopSocials?.trim() || null,
+          currency: shopCurrency || 'CDF',
           ownerId: newVendor.id,
           isActive: true,
         },

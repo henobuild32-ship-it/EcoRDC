@@ -85,10 +85,10 @@ export interface Shop {
   hours?: string;
   socials?: string;
   currency?: string;
-  ownerId: string;
-  isRecommended: boolean;
-  recommendationStatus: string;
-  isActive: boolean;
+  ownerId?: string;
+  isRecommended?: boolean;
+  recommendationStatus?: string;
+  isActive?: boolean;
   owner?: User;
   products?: Product[];
 }

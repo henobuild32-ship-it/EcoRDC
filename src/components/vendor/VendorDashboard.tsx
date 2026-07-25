@@ -206,12 +206,25 @@ interface SubscriptionInfo {
 }
 
 export default function VendorDashboard() {
-  const { user, token, setCurrentView } = useAppStore();
+  const { user, token, setCurrentView, setUser } = useAppStore();
   const [stats, setStats] = useState({ products: 0, orders: 0, pendingOrders: 0, revenue: 0, messages: 0 });
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
+
+  // If shop is missing from user object (e.g. right after registration), fetch it
+  useEffect(() => {
+    if (!token || user?.shop) return;
+    fetch('/api/shops?myShop=true', { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.shop && user) {
+          setUser({ ...user, shop: data.shop }, token);
+        }
+      })
+      .catch(() => {});
+  }, [token, user?.shop]);
 
   const fetchSubscription = useCallback(async () => {
     if (!token) return;

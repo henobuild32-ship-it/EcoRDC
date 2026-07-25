@@ -112,6 +112,8 @@ export default function VendorShopSettings() {
   const [userPhone, setUserPhone] = useState('');
   const [userAddress, setUserAddress] = useState('');
   const [userCity, setUserCity] = useState('');
+  const [userAvatar, setUserAvatar] = useState('');
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMessage, setProfileMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -189,6 +191,7 @@ export default function VendorShopSettings() {
       setUserPhone(user.phone || '');
       setUserAddress((user as any).address || '');
       setUserCity((user as any).city || '');
+      setUserAvatar(user.avatar || '');
     }
   }, [user]);
 
@@ -205,6 +208,22 @@ export default function VendorShopSettings() {
       toast.error('Erreur lors du téléchargement du logo');
     } finally {
       setUploadingLogo(false);
+    }
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingAvatar(true);
+    try {
+      const url = await uploadImage(file);
+      setUserAvatar(url);
+      toast.success('Photo de profil mise à jour');
+    } catch {
+      setProfileMessage({ type: 'error', text: 'Erreur lors du téléchargement de la photo' });
+      toast.error('Erreur lors du téléchargement de la photo');
+    } finally {
+      setUploadingAvatar(false);
     }
   };
 
@@ -317,6 +336,7 @@ export default function VendorShopSettings() {
           phone: userPhone,
           address: userAddress,
           city: userCity,
+          avatar: userAvatar || undefined,
         }),
       });
       if (res.ok) {
@@ -744,6 +764,39 @@ export default function VendorShopSettings() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Avatar upload */}
+            <div className="flex items-center gap-4">
+              <div className="relative group/avatar">
+                <div className="h-16 w-16 rounded-full bg-white shadow border-2 border-white overflow-hidden">
+                  {userAvatar ? (
+                    <img src={userAvatar} alt="Photo" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-emerald-50 dark:bg-emerald-900/30">
+                      <User className="h-7 w-7 text-emerald-600" />
+                    </div>
+                  )}
+                </div>
+                <label className="absolute inset-0 rounded-full flex items-center justify-center bg-black/40 opacity-0 group-hover/avatar:opacity-100 transition-opacity cursor-pointer">
+                  {uploadingAvatar ? (
+                    <Loader2 className="h-4 w-4 text-white animate-spin" />
+                  ) : (
+                    <Camera className="h-4 w-4 text-white" />
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    className="hidden"
+                    disabled={uploadingAvatar}
+                  />
+                </label>
+              </div>
+              <div>
+                <p className="text-sm font-medium">Photo de profil</p>
+                <p className="text-xs text-muted-foreground">Survolez pour changer</p>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="user-name">Nom complet</Label>
