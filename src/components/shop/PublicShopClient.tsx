@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -48,17 +47,26 @@ interface ProductData {
   createdAt: string;
 }
 
+const formatPrice = (price: number) => {
+  try {
+    return new Intl.NumberFormat('fr-CD', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(price) + ' FC';
+  } catch {
+    return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' FC';
+  }
+};
+
 export function PublicShopClient({ shop }: { shop: ShopData }) {
   const [showContactModal, setShowContactModal] = useState(false);
+  const [logoError, setLogoError] = useState(false);
+  const [productImgErrors, setProductImgErrors] = useState<Set<string>>(new Set());
 
   const handleShare = async () => {
     const url = window.location.href;
     try {
       if (navigator.share) {
-        await navigator.share({ title: shop?.name, url });
+        await navigator.share({ title: shop.name, url });
       } else if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(url);
-        toast.success('✅ Lien copié avec succès');
       } else {
         const textarea = document.createElement('textarea');
         textarea.value = url;
@@ -68,28 +76,29 @@ export function PublicShopClient({ shop }: { shop: ShopData }) {
         textarea.select();
         document.execCommand('copy');
         document.body.removeChild(textarea);
-        toast.success('✅ Lien copié avec succès');
       }
     } catch {
-      toast.error('Erreur lors du partage');
+      // Silent fail on mobile share cancel
     }
   };
 
-  const formatPrice = (price: number) =>
-    new Intl.NumberFormat('fr-CD').format(price) + ' FC';
+  const handleProductImgError = (id: string) => {
+    setProductImgErrors((prev) => new Set(prev).add(id));
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/20 to-teal-50/30">
-      {/* Header / Cover */}
+      {/* Header */}
       <div className="relative bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
         <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
             {/* Logo */}
             <div className="shrink-0">
-              {shop.logo ? (
+              {shop.logo && !logoError ? (
                 <img
                   src={shop.logo}
                   alt={shop.name}
+                  onError={() => setLogoError(true)}
                   className="w-20 h-20 md:w-28 md:h-28 rounded-2xl object-cover border-4 border-white/20 shadow-lg"
                 />
               ) : (
@@ -100,18 +109,18 @@ export function PublicShopClient({ shop }: { shop: ShopData }) {
             </div>
 
             {/* Info */}
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-2xl md:text-3xl font-bold">{shop.name}</h1>
+                <h1 className="text-2xl md:text-3xl font-bold truncate">{shop.name}</h1>
                 {shop.isRecommended && (
-                  <Badge className="bg-yellow-400 text-yellow-900 border-0">
+                  <Badge className="bg-yellow-400 text-yellow-900 border-0 shrink-0">
                     <Star className="h-3 w-3 mr-1" /> Recommandée
                   </Badge>
                 )}
               </div>
 
               {shop.description && (
-                <p className="text-white/80 text-sm md:text-base mb-3 max-w-xl">
+                <p className="text-white/80 text-sm md:text-base mb-3 max-w-xl line-clamp-3">
                   {shop.description}
                 </p>
               )}
@@ -124,24 +133,24 @@ export function PublicShopClient({ shop }: { shop: ShopData }) {
                 )}
                 {(shop.city || shop.country) && (
                   <span className="flex items-center gap-1">
-                    <MapPin className="h-3.5 w-3.5" />
-                    {[shop.city, shop.country].filter(Boolean).join(', ')}
+                    <MapPin className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{shop.city || shop.country}</span>
                   </span>
                 )}
                 <span className="flex items-center gap-1">
-                  <Package className="h-3.5 w-3.5" />
+                  <Package className="h-3.5 w-3.5 shrink-0" />
                   {shop._count.products} produit{shop._count.products !== 1 ? 's' : ''}
                 </span>
               </div>
             </div>
 
             {/* Actions */}
-            <div className="flex gap-2 shrink-0">
+            <div className="flex gap-2 shrink-0 w-full md:w-auto">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleShare}
-                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20 flex-1 md:flex-none"
               >
                 <Share2 className="h-4 w-4 mr-1" />
                 Partager
@@ -149,7 +158,7 @@ export function PublicShopClient({ shop }: { shop: ShopData }) {
               <Button
                 size="sm"
                 onClick={() => setShowContactModal(true)}
-                className="bg-white text-emerald-600 hover:bg-white/90"
+                className="bg-white text-emerald-600 hover:bg-white/90 flex-1 md:flex-none"
               >
                 <MessageCircle className="h-4 w-4 mr-1" />
                 Contacter
@@ -175,10 +184,11 @@ export function PublicShopClient({ shop }: { shop: ShopData }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {shop.products.map((product) => (
               <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                {product.image ? (
+                {product.image && !productImgErrors.has(product.id) ? (
                   <img
                     src={product.image}
                     alt={product.name}
+                    onError={() => handleProductImgError(product.id)}
                     className="w-full h-48 object-cover"
                   />
                 ) : (
@@ -223,8 +233,8 @@ export function PublicShopClient({ shop }: { shop: ShopData }) {
 
       {/* Contact Modal */}
       {showContactModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <Card className="max-w-md w-full p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowContactModal(false)}>
+          <Card className="max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
             <div className="text-center mb-6">
               <div className="h-14 w-14 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mx-auto mb-3">
                 <MessageCircle className="h-7 w-7 text-emerald-500" />
@@ -283,7 +293,7 @@ export function PublicShopClient({ shop }: { shop: ShopData }) {
 
       {/* Footer */}
       <div className="text-center py-6 text-xs text-muted-foreground border-t">
-        Boutique hébergée sur EcoRDC &copy; {new Date().getFullYear()}
+        Boutique hébergée sur EcoRDC &copy; 2026
       </div>
     </div>
   );
