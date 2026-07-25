@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
-import path from 'path';
+import { supabaseAdmin, UPLOADS_BUCKET, getPublicUrl } from '@/lib/supabase-storage';
 import { randomUUID } from 'crypto';
 
-// Allowed mime types and their file extensions
 const ALLOWED_MIME: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/jpg': 'jpg',
@@ -14,7 +11,7 @@ const ALLOWED_MIME: Record<string, string> = {
   'image/svg+xml': 'svg',
 };
 
-const MAX_FILE_SIZE = 8 * 1024 * 1024; // 8 MB
+const MAX_FILE_SIZE = 8 * 1024 * 1024;
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,55 +22,56 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Aucun fichier fourni' }, { status: 400 });
     }
 
-    // Validate mime type
     const ext = ALLOWED_MIME[file.type];
     if (!ext) {
       return NextResponse.json(
-        { error: `Type de fichier non supporté: ${file.type}. Formats acceptés: JPG, PNG, WebP, GIF, SVG` },
+        { error: `Type non supporté: ${file.type}. Acceptés: JPG, PNG, WebP, GIF, SVG` },
         { status: 400 }
       );
     }
 
-    // Validate file size
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { error: 'Le fichier dépasse la taille maximale de 8 Mo' },
+        { error: 'Fichier trop volumineux (max 8 Mo)' },
         { status: 400 }
       );
     }
 
-    // Ensure the uploads directory exists
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
-    }
-
-    // Generate a unique filename
     const filename = `${randomUUID()}.${ext}`;
-    const filepath = path.join(uploadsDir, filename);
-
-    // Write the file to disk
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    await writeFile(filepath, buffer);
 
-    // Return the public URL
-    const url = `/uploads/${filename}`;
+    const { error } = await supabaseAdmin.storage
+      .from(UPLOADS_BUCKET)
+      .upload(filename, buffer, {
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (error) {
+      console.error('Supabase upload error:', error);
+      return NextResponse.json(
+        { error: `Erreur upload: ${error.message}` },
+        { status: 500 }
+      );
+    }
+
+    const url = getPublicUrl(filename);
     return NextResponse.json({ url, filename, size: file.size, type: file.type });
   } catch (error) {
     console.error('Upload error:', error);
     return NextResponse.json(
-      { error: 'Erreur lors du téléchargement du fichier' },
+      { error: 'Erreur lors du téléchargement' },
       { status: 500 }
     );
   }
 }
 
-// GET endpoint to verify the upload service is available
 export async function GET() {
   return NextResponse.json({
     service: 'upload',
     status: 'ok',
+    backend: 'supabase-storage',
     maxSize: '8MB',
     acceptedTypes: Object.keys(ALLOWED_MIME),
   });
