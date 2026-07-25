@@ -379,7 +379,7 @@ export default function VendorShopSettings() {
               <div>
                 <p className="text-sm font-medium">Lien de votre boutique</p>
                 <p className="text-xs text-emerald-600 dark:text-emerald-400 font-mono">
-                  {shopUrl ? `${shop?.slug}-ecordc.com` : 'Chargement...'}
+                  {shopUrl ? `${shop?.slug}.ecordc` : 'Chargement...'}
                 </p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
                   Redirige vers votre page boutique EcoRDC

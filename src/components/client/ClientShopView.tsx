@@ -301,7 +301,7 @@ export default function ClientShopView() {
                 <div className="flex items-center gap-3 mt-1.5">
                   <p className="text-white/60 text-xs flex items-center gap-1">
                     <Link2 className="h-3 w-3" />
-                    ecordc-{shop.slug}.com
+                    {shop.slug}.ecordc
                   </p>
                   {(shop as any).city && (
                     <p className="text-white/60 text-xs flex items-center gap-1">

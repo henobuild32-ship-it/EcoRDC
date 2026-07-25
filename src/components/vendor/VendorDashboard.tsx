@@ -597,7 +597,7 @@ export default function VendorDashboard() {
                   </p>
                   <div className="flex items-center gap-2 mt-2">
                     <ExternalLink className="h-3 w-3 text-emerald-200/70" />
-                    <span className="text-emerald-200/80 text-xs font-mono">{user?.shop?.slug}-ecordc.com</span>
+                    <span className="text-emerald-200/80 text-xs font-mono">{user?.shop?.slug}.ecordc</span>
                   </div>
                 </div>
               </div>

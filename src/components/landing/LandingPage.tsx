@@ -1136,7 +1136,7 @@ export default function LandingPage() {
                 </li>
                 <li className="flex items-center gap-2 text-sm text-muted-foreground">
                   <MessageCircle className="h-4 w-4 text-emerald-500" />
-                  support@ecordc.com
+                  support@ecordc
                 </li>
               </ul>
             </div>

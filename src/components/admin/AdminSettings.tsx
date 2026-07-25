@@ -44,9 +44,9 @@ export default function AdminSettings() {
   const [accentColor, setAccentColor] = useState('#f59e0b');
 
   // Emails
-  const [contactEmail, setContactEmail] = useState('contact@ecordc.com');
-  const [supportEmail, setSupportEmail] = useState('support@ecordc.com');
-  const [notificationsEmail, setNotificationsEmail] = useState('notifications@ecordc.com');
+  const [contactEmail, setContactEmail] = useState('contact@ecordc');
+  const [supportEmail, setSupportEmail] = useState('support@ecordc');
+  const [notificationsEmail, setNotificationsEmail] = useState('notifications@ecordc');
 
   // Security
   const [sessionTimeout, setSessionTimeout] = useState(30);

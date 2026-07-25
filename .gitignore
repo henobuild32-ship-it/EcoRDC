@@ -81,8 +81,5 @@ examples/
 # skills
 /skills/
 
-# server configs (may contain secrets)
-Caddyfile
-
 # Internal development log
 worklog.md

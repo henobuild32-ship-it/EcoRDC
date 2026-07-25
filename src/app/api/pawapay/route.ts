@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
             amount: { amount, currency: 'CDF' },
             countryCode: 'COD',
             reason,
-            returnUrl: 'https://ecordc.com/payment-callback',
+            returnUrl: 'https://ecordc/payment-callback',
           }),
           signal: pawapayController.signal,
         });

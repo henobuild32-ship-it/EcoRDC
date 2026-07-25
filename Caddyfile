@@ -1,22 +1,22 @@
 # ==========================================
 # EcoRDC Domain Masking - Caddy Reverse Proxy
 # ==========================================
-# This Caddyfile routes boutique-ecordc.com traffic to Vercel
+# This Caddyfile routes *.ecordc traffic to Vercel
 # while keeping the custom domain visible in the browser URL bar.
 #
 # SETUP:
-# 1. Point boutique-ecordc.com DNS A record to your VPS IP
+# 1. Point *.ecordc DNS A record to your VPS IP
 # 2. Install Caddy on the VPS: sudo apt install caddy
 # 3. Copy this file to /etc/caddy/Caddyfile
 # 4. Restart Caddy: sudo systemctl restart caddy
 #
-# For wildcard subdomains (shop-xxx.ecordc.com):
-# - Point *.ecordc.com DNS to your VPS IP
+# For wildcard subdomains (shop.ecordc):
+# - Point *.ecordc DNS to your VPS IP
 # - Caddy will handle all subdomains automatically
 # ==========================================
 
 # Wildcard domain for all shop subdomains
-*.ecordc.com {
+*.ecordc {
     reverse_proxy https://eco-rdc.vercel.app {
         header_up Host eco-rdc.vercel.app
         header_up X-Real-IP {remote_host}
@@ -39,24 +39,8 @@
     header @static Cache-Control "public, max-age=31536000, immutable"
 }
 
-# Main domain redirect
-ecordc.com {
-    redir https://www.ecordc.com{uri}
-}
-
-www.ecordc.com {
-    reverse_proxy https://eco-rdc.vercel.app {
-        header_up Host eco-rdc.vercel.app
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-        header_up X-Forwarded-Proto {scheme}
-    }
-
-    encode gzip zstd
-}
-
-# Legacy domain support
-boutique-ecordc.com {
+# Main domain
+ecordc {
     reverse_proxy https://eco-rdc.vercel.app {
         header_up Host eco-rdc.vercel.app
         header_up X-Real-IP {remote_host}
