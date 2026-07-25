@@ -14,14 +14,13 @@ import { CheckCircle, XCircle, Loader2, Shield, Lock, CreditCard, Smartphone, Ar
 // ==========================================
 
 const PAYMENT_METHODS = [
-  { id: 'ORANGE_MONEY', label: 'Orange Money', icon: '🟠', color: 'bg-orange-500' },
-  { id: 'AIRTEL_MONEY', label: 'Airtel Money', icon: '🔴', color: 'bg-red-500' },
-  { id: 'M_PESA', label: 'M-Pesa', icon: '🟢', color: 'bg-green-500' },
-  { id: 'MTN_MOMO', label: 'MTN MoMo', icon: '🟡', color: 'bg-yellow-500' },
-  { id: 'MOOV_MONEY', label: 'Moov Money', icon: '🔵', color: 'bg-blue-500' },
-  { id: 'WAVE', label: 'Wave', icon: '🌊', color: 'bg-cyan-500' },
-  { id: 'VISA', label: 'Carte Visa', icon: '💳', color: 'bg-indigo-700' },
-  { id: 'MASTERCARD', label: 'Carte Mastercard', icon: '💳', color: 'bg-purple-700' },
+  { id: 'orange_money', label: 'Orange Money', icon: '🟠', color: 'bg-orange-500', group: 'mobile' },
+  { id: 'airtel_money', label: 'Airtel Money', icon: '🔴', color: 'bg-red-500', group: 'mobile' },
+  { id: 'm_pesa', label: 'M-Pesa', icon: '🟢', color: 'bg-green-500', group: 'mobile' },
+  { id: 'mtn_money', label: 'MTN MoMo', icon: '🟡', color: 'bg-yellow-500', group: 'mobile' },
+  { id: 'moov_money', label: 'Moov Money', icon: '🔵', color: 'bg-blue-500', group: 'mobile' },
+  { id: 'wave', label: 'Wave', icon: '🌊', color: 'bg-cyan-500', group: 'mobile' },
+  { id: 'card', label: 'Carte bancaire', icon: '💳', color: 'bg-indigo-700', group: 'card' },
 ] as const;
 
 function CheckoutContent() {
@@ -58,7 +57,7 @@ function CheckoutContent() {
     }
 
     // Validate inputs based on payment type
-    if (selected.group === 'mobile' || ['ORANGE_MONEY', 'AIRTEL_MONEY', 'M_PESA', 'MTN_MOMO', 'MOOV_MONEY', 'WAVE'].includes(selectedMethod)) {
+    if (selected.group === 'mobile') {
       if (!phone || !phone.match(/^\+?\d{8,15}$/)) {
         setError('Veuillez saisir un numéro de téléphone valide');
         return;
@@ -122,7 +121,7 @@ function CheckoutContent() {
   };
 
   const selectedMethodData = PAYMENT_METHODS.find(m => m.id === selectedMethod);
-  const isMobileMoney = selectedMethodData && ['ORANGE_MONEY', 'AIRTEL_MONEY', 'M_PESA', 'MTN_MOMO', 'MOOV_MONEY', 'WAVE'].includes(selectedMethodData.id);
+  const isMobileMoney = selectedMethodData && selectedMethodData.group === 'mobile';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 flex items-center justify-center p-4">

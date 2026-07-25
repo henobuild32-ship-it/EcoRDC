@@ -283,13 +283,13 @@ export default function VendorDashboard() {
     return 'Bonsoir';
   }, []);
 
-  const shopSlug = user?.name
-    ? `ecordc-${user.name.toLowerCase().replace(/\s+/g, '-')}.com`
-    : 'ecordc-votre-boutique.com';
+  const shopUrl = user?.shop?.slug
+    ? `${window.location.origin}/shop/${user.shop.slug}`
+    : '';
 
   const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(`https://${shopSlug}`);
+      await navigator.clipboard.writeText(shopUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -597,7 +597,7 @@ export default function VendorDashboard() {
                   </p>
                   <div className="flex items-center gap-2 mt-2">
                     <ExternalLink className="h-3 w-3 text-emerald-200/70" />
-                    <span className="text-emerald-200/80 text-xs font-mono">{shopSlug}</span>
+                    <span className="text-emerald-200/80 text-xs font-mono">{user?.shop?.slug}-ecordc.com</span>
                   </div>
                 </div>
               </div>

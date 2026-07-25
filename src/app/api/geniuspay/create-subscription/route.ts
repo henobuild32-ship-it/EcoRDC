@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
     const origin = request.nextUrl.origin;
     const callbackUrl = `${origin}/api/geniuspay/webhook`;
 
-    // Create GeniusPay checkout session (tries real API, falls back to local sandbox checkout)
+    // Create GeniusPay checkout session
     const checkout = await createGeniusPayCheckout({
       reference,
       amount,
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
       customerPhone: phoneNumber || vendor.phone || undefined,
       paymentMethod: paymentMethod || undefined,
       returnUrl: `${origin}/?payment=return&reference=${reference}`,
-      callbackUrl,
+      callbackUrl: `${origin}/api/geniuspay/webhook`,
     });
 
     // For sandbox mode, build a local checkout URL that opens our GeniusPay-style

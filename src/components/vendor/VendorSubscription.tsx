@@ -107,14 +107,13 @@ interface PaymentMethodInfo {
 }
 
 const PAYMENT_METHODS: PaymentMethodInfo[] = [
-  { id: 'ORANGE_MONEY', label: 'Orange Money', icon: '🟠', group: 'mobile', color: 'border-orange-400 bg-orange-50 dark:bg-orange-950/20' },
-  { id: 'AIRTEL_MONEY', label: 'Airtel Money', icon: '🔴', group: 'mobile', color: 'border-red-400 bg-red-50 dark:bg-red-950/20' },
-  { id: 'M_PESA', label: 'M-Pesa', icon: '🟢', group: 'mobile', color: 'border-green-400 bg-green-50 dark:bg-green-950/20' },
-  { id: 'MTN_MOMO', label: 'MTN MoMo', icon: '🟡', group: 'mobile', color: 'border-yellow-400 bg-yellow-50 dark:bg-yellow-950/20' },
-  { id: 'MOOV_MONEY', label: 'Moov Money', icon: '🔵', group: 'mobile', color: 'border-blue-400 bg-blue-50 dark:bg-blue-950/20' },
-  { id: 'WAVE', label: 'Wave', icon: '🌊', group: 'mobile', color: 'border-cyan-400 bg-cyan-50 dark:bg-cyan-950/20' },
-  { id: 'VISA', label: 'Carte Visa', icon: '💳', group: 'card', color: 'border-indigo-400 bg-indigo-50 dark:bg-indigo-950/20' },
-  { id: 'MASTERCARD', label: 'Carte Mastercard', icon: '💳', group: 'card', color: 'border-purple-400 bg-purple-50 dark:bg-purple-950/20' },
+  { id: 'orange_money', label: 'Orange Money', icon: '🟠', group: 'mobile', color: 'border-orange-400 bg-orange-50 dark:bg-orange-950/20' },
+  { id: 'airtel_money', label: 'Airtel Money', icon: '🔴', group: 'mobile', color: 'border-red-400 bg-red-50 dark:bg-red-950/20' },
+  { id: 'm_pesa', label: 'M-Pesa', icon: '🟢', group: 'mobile', color: 'border-green-400 bg-green-50 dark:bg-green-950/20' },
+  { id: 'mtn_money', label: 'MTN MoMo', icon: '🟡', group: 'mobile', color: 'border-yellow-400 bg-yellow-50 dark:bg-yellow-950/20' },
+  { id: 'moov_money', label: 'Moov Money', icon: '🔵', group: 'mobile', color: 'border-blue-400 bg-blue-50 dark:bg-blue-950/20' },
+  { id: 'wave', label: 'Wave', icon: '🌊', group: 'mobile', color: 'border-cyan-400 bg-cyan-50 dark:bg-cyan-950/20' },
+  { id: 'card', label: 'Carte bancaire', icon: '💳', group: 'card', color: 'border-indigo-400 bg-indigo-50 dark:bg-indigo-950/20' },
 ];
 
 const PREMIUM_BENEFITS = [

@@ -135,53 +135,75 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // If vendor, create subscription and pending payment (shop created after payment confirmation)
+      // If vendor, create trial subscription + shop immediately (no payment required)
       if (role === 'VENDOR' && shopName) {
-        // Create INACTIVE subscription
+        const now = new Date();
+        const expiryDate = new Date(now);
+        expiryDate.setDate(expiryDate.getDate() + 30);
+
+        // Create 30-day TRIAL subscription
         const subscription = await db.subscription.create({
           data: {
             vendorId: user.id,
-            status: 'INACTIVE',
-            amount: REGISTRATION_FEE,
+            status: 'TRIAL',
+            startDate: now,
+            expiryDate,
+            amount: 0,
           },
         });
 
-        // Create pending REGISTRATION payment
-        const depositId = randomUUID();
-        const redirectUrl = `https://sandbox.pawapay.io/pay/${depositId}`;
-        const pawapaySuccess = false; // PawaPay API called separately by client
+        // Create shop immediately with unique slug
+        let baseSlug = generateShopSlug(shopName);
+        let slug = baseSlug;
+        let suffix = 1;
+        while (await db.shop.findUnique({ where: { slug } })) {
+          slug = `${baseSlug}-${suffix}`;
+          suffix++;
+        }
 
-        // Store shop info temporarily in payment metadata
-        const shopInfo = {
-          shopName,
-          shopDescription: shopDescription || null,
-          shopCategory: shopCategory || null,
-          shopLogo: shopLogo || null,
-          shopAddress: shopAddress || null,
-          shopCity: shopCity || null,
-          shopCountry: shopCountry || null,
-        };
+        const shop = await db.shop.create({
+          data: {
+            name: shopName,
+            slug,
+            description: shopDescription || null,
+            logo: shopLogo || null,
+            category: shopCategory || null,
+            address: shopAddress || null,
+            city: shopCity || city || null,
+            country: shopCountry || country || null,
+            ownerId: user.id,
+            isActive: true,
+          },
+        });
 
-        const payment = await db.payment.create({
+        // Record free trial as admin grant for audit
+        await db.payment.create({
           data: {
             vendorId: user.id,
             subscriptionId: subscription.id,
-            amount: REGISTRATION_FEE,
+            amount: 0,
             currency: 'CDF',
-            type: 'REGISTRATION',
-            status: 'PENDING',
-            paymentMethod: 'PAWAPAY',
-            transactionRef: depositId,
-            pawapayStatus: 'PENDING',
-            description: 'EcoRDC - Inscription Vendeur',
-            metadata: JSON.stringify({ ...shopInfo, sandbox: !pawapaySuccess }),
+            type: 'SUBSCRIPTION',
+            status: 'COMPLETED',
+            paymentMethod: 'ADMIN_GRANT',
+            description: 'Essai gratuit 30 jours - Inscription vendeur',
+          },
+        });
+
+        // Welcome notification
+        await db.notification.create({
+          data: {
+            userId: user.id,
+            title: 'Bienvenue sur EcoRDC !',
+            message: `Votre boutique "${shopName}" est maintenant active pour 30 jours. Après cette période, vous devrez souscrire à l'abonnement (10 000 FC/mois).`,
+            type: 'SYSTEM',
           },
         });
 
         const token = generateToken({ userId: user.id, email: user.email, role: user.role });
 
         await db.activityLog.create({
-          data: { userId: user.id, action: 'REGISTER', details: `Inscription vendeur - Paiement en attente (${depositId})` },
+          data: { userId: user.id, action: 'REGISTER', details: `Inscription vendeur - Essai gratuit 30 jours - Boutique "${shopName}" créée` },
         });
 
         const userResponse = await formatUserResponse(user);
@@ -189,17 +211,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
           user: userResponse,
           token,
-          paymentRequired: true,
-          payment: {
-            id: payment.id,
-            depositId,
-            amount: REGISTRATION_FEE,
-            currency: 'CDF',
-            type: 'REGISTRATION',
-            status: 'PENDING',
-            redirectUrl,
-            sandbox: !pawapaySuccess,
-          },
         });
       }
 

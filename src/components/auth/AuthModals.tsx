@@ -620,14 +620,13 @@ interface PaymentMethodInfo {
 }
 
 const DEFAULT_PAYMENT_METHODS: PaymentMethodInfo[] = [
-  { id: 'ORANGE_MONEY', label: 'Orange Money', group: 'mobile', icon: 'smartphone', color: 'border-orange-300 bg-orange-50 dark:bg-orange-900/20' },
-  { id: 'AIRTEL_MONEY', label: 'Airtel Money', group: 'mobile', icon: 'smartphone', color: 'border-red-300 bg-red-50 dark:bg-red-900/20' },
-  { id: 'M_PESA', label: 'M-Pesa', group: 'mobile', icon: 'smartphone', color: 'border-green-300 bg-green-50 dark:bg-green-900/20' },
-  { id: 'MTN_MOMO', label: 'MTN MoMo', group: 'mobile', icon: 'smartphone', color: 'border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20' },
-  { id: 'MOOV_MONEY', label: 'Moov Money', group: 'mobile', icon: 'smartphone', color: 'border-blue-300 bg-blue-50 dark:bg-blue-900/20' },
-  { id: 'WAVE', label: 'Wave', group: 'mobile', icon: 'smartphone', color: 'border-cyan-300 bg-cyan-50 dark:bg-cyan-900/20' },
-  { id: 'VISA', label: 'Carte Visa', group: 'card', icon: 'credit-card', color: 'border-blue-400 bg-blue-50 dark:bg-blue-900/20' },
-  { id: 'MASTERCARD', label: 'Mastercard', group: 'card', icon: 'credit-card', color: 'border-orange-400 bg-orange-50 dark:bg-orange-900/20' },
+  { id: 'orange_money', label: 'Orange Money', group: 'mobile', icon: 'smartphone', color: 'border-orange-300 bg-orange-50 dark:bg-orange-900/20' },
+  { id: 'airtel_money', label: 'Airtel Money', group: 'mobile', icon: 'smartphone', color: 'border-red-300 bg-red-50 dark:bg-red-900/20' },
+  { id: 'm_pesa', label: 'M-Pesa', group: 'mobile', icon: 'smartphone', color: 'border-green-300 bg-green-50 dark:bg-green-900/20' },
+  { id: 'mtn_money', label: 'MTN MoMo', group: 'mobile', icon: 'smartphone', color: 'border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20' },
+  { id: 'moov_money', label: 'Moov Money', group: 'mobile', icon: 'smartphone', color: 'border-blue-300 bg-blue-50 dark:bg-blue-900/20' },
+  { id: 'wave', label: 'Wave', group: 'mobile', icon: 'smartphone', color: 'border-cyan-300 bg-cyan-50 dark:bg-cyan-900/20' },
+  { id: 'card', label: 'Carte bancaire', group: 'card', icon: 'credit-card', color: 'border-blue-400 bg-blue-50 dark:bg-blue-900/20' },
 ];
 
 function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
@@ -711,7 +710,6 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
     { label: 'Infos', icon: User },
     { label: 'Adresse', icon: MapPin },
     { label: 'Boutique', icon: Store },
-    { label: 'Paiement', icon: CreditCard },
   ];
   const steps = role === 'VENDOR' ? vendorSteps : clientSteps;
   const totalSteps = steps.length;
@@ -751,14 +749,13 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
   const handleRegister = async () => {
     if (!validateStep(currentStep)) return;
 
-    // For vendors on the payment step, handle payment
-    if (role === 'VENDOR' && currentStep === 4) {
-      await handleVendorPayment();
+    // For vendors on the last step, submit registration directly (no payment)
+    if (role === 'VENDOR' && currentStep === totalSteps) {
+      await handleVendorRegister();
       return;
     }
 
-    // For clients or vendors not on payment step yet, this shouldn't be called
-    // Clients register directly, vendors go through payment step
+    // For clients, register directly
     if (role === 'CLIENT') {
       await handleClientRegister();
     }
@@ -796,6 +793,57 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
       setTimeout(() => {
         setUser(data.user, data.token);
         setCurrentView('client-dashboard');
+        onOpenChange(false);
+        resetForm();
+      }, 2000);
+    } catch {
+      setError('Erreur de connexion au serveur. Veuillez réessayer.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVendorRegister = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'register',
+          email: email.trim(),
+          password,
+          name: name.trim(),
+          phone: phone.trim() || undefined,
+          avatar: avatar || undefined,
+          address: address.trim() || undefined,
+          city: city.trim() || undefined,
+          country,
+          role: 'VENDOR',
+          shopName: shopName.trim(),
+          shopLogo: shopLogo || undefined,
+          shopCategory: shopCategory || undefined,
+          shopDescription: shopDescription.trim() || undefined,
+          shopAddress: shopAddress.trim() || undefined,
+          shopCity: shopCity.trim() || undefined,
+          shopCountry: shopCountry,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || 'Erreur d\'inscription');
+        return;
+      }
+
+      setRegistrationSuccess(true);
+
+      setTimeout(() => {
+        setUser(data.user, data.token);
+        refreshUser();
+        setCurrentView('vendor-dashboard');
         onOpenChange(false);
         resetForm();
       }, 2000);
@@ -1460,191 +1508,6 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
                       </div>
                     </>
                   )}
-
-                  {currentStep === 4 && role === 'VENDOR' && (
-                    /* ---- Step 4: Payment — choose method + pay via GeniusPay ---- */
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="space-y-5 py-4"
-                    >
-                      {/* Payment header */}
-                      <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white shadow-lg shadow-emerald-200 dark:shadow-emerald-900/30">
-                          <CreditCard className="h-6 w-6" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-lg">Frais d&apos;inscription vendeur</p>
-                          <p className="text-xs text-muted-foreground">Paiement requis avant l&apos;accès au tableau de bord</p>
-                        </div>
-                      </div>
-
-                      {/* Amount display */}
-                      <div className="text-center py-4 rounded-xl bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border border-emerald-200 dark:border-emerald-800">
-                        <p className="text-sm text-muted-foreground mb-1">Montant à payer</p>
-                        <p className="text-4xl font-bold text-emerald-600 dark:text-emerald-400">10 000 <span className="text-lg">FC</span></p>
-                        <p className="text-xs text-muted-foreground mt-1">Abonnement de 31 jours inclus</p>
-                      </div>
-
-                      {/* Payment flow states */}
-                      {paymentStep === 'idle' && (
-                        <>
-                          {/* Payment method selector */}
-                          <div className="space-y-3">
-                            <p className="text-sm font-medium">Choisissez votre moyen de paiement</p>
-                            <div className="grid grid-cols-2 gap-2.5">
-                              {paymentMethods.map((method) => (
-                                <button
-                                  key={method.id}
-                                  type="button"
-                                  onClick={() => setSelectedPaymentMethod(method.id)}
-                                  className={`flex items-center gap-2.5 p-3 rounded-xl border-2 transition-all text-left ${
-                                    selectedPaymentMethod === method.id
-                                      ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 shadow-md ring-2 ring-emerald-500/20'
-                                      : 'border-border bg-background hover:border-emerald-300 dark:hover:border-emerald-700'
-                                  }`}
-                                >
-                                  <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${method.color}`}>
-                                    {method.group === 'mobile' ? (
-                                      <Smartphone className="h-4 w-4" />
-                                    ) : (
-                                      <CreditCard className="h-4 w-4" />
-                                    )}
-                                  </div>
-                                  <span className="text-sm font-medium truncate">{method.label}</span>
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Phone number (for mobile money) */}
-                          {selectedPaymentMethod && paymentMethods.find(m => m.id === selectedPaymentMethod)?.group === 'mobile' && (
-                            <div className="space-y-1.5">
-                              <Label className="text-sm">Numéro de téléphone (optionnel)</Label>
-                              <Input
-                                type="tel"
-                                placeholder="+243 ..."
-                                value={paymentPhoneNumber}
-                                onChange={(e) => setPaymentPhoneNumber(e.target.value)}
-                                className="h-11"
-                              />
-                              <p className="text-[11px] text-muted-foreground">Utilisé pour Mobile Money si applicable</p>
-                            </div>
-                          )}
-
-                          {/* Info banner */}
-                          <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                            <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-                            <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
-                              Après avoir cliqué sur « Payer », vous serez redirigé vers la page de paiement GeniusPay. Votre abonnement de 31 jours s&apos;active immédiatement après confirmation du paiement.
-                            </p>
-                          </div>
-
-                          {/* What's included */}
-                          <div className="space-y-2">
-                            <p className="text-xs font-medium text-muted-foreground">Ce qui est inclus :</p>
-                            <div className="grid grid-cols-1 gap-1.5">
-                              {[
-                                'Création de votre boutique en ligne',
-                                'Accès au tableau de bord vendeur pendant 31 jours',
-                                'Publication de produits illimitée',
-                                'Messagerie avec les clients',
-                                'Factures automatiques',
-                              ].map((item) => (
-                                <div key={item} className="flex items-center gap-2 text-xs">
-                                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                                  <span>{item}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </>
-                      )}
-
-                      {/* Registering state */}
-                      {paymentStep === 'registering' && (
-                        <div className="flex flex-col items-center justify-center py-8 space-y-3">
-                          <Loader2 className="h-10 w-10 animate-spin text-emerald-500" />
-                          <p className="text-sm font-medium">Création de votre compte vendeur…</p>
-                          <p className="text-xs text-muted-foreground">Veuillez patienter</p>
-                        </div>
-                      )}
-
-                      {/* Initiating payment state */}
-                      {paymentStep === 'initiating' && (
-                        <div className="flex flex-col items-center justify-center py-8 space-y-3">
-                          <Loader2 className="h-10 w-10 animate-spin text-emerald-500" />
-                          <p className="text-sm font-medium">Initialisation du paiement GeniusPay…</p>
-                          <p className="text-xs text-muted-foreground">Préparation de la transaction</p>
-                        </div>
-                      )}
-
-                      {/* Checking payment state */}
-                      {paymentStep === 'checking' && (
-                        <div className="flex flex-col items-center justify-center py-6 space-y-4">
-                          <div className="h-14 w-14 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                            <Loader2 className="h-7 w-7 animate-spin text-emerald-500" />
-                          </div>
-                          <div className="text-center space-y-1.5">
-                            <p className="text-sm font-medium">En attente de la confirmation de paiement…</p>
-                            <p className="text-xs text-muted-foreground">
-                              Une fenêtre GeniusPay s&apos;est ouverte. Finalisez votre paiement, puis cette page se mettra à jour automatiquement.
-                            </p>
-                          </div>
-                          {checkoutUrl && (
-                            <a href={checkoutUrl} target="_blank" rel="noopener noreferrer">
-                              <Button type="button" variant="outline" className="gap-2 h-10">
-                                <ExternalLink className="h-4 w-4" /> Rouvrir la page de paiement
-                              </Button>
-                            </a>
-                          )}
-                          {isSandbox && (
-                            <Button
-                              type="button"
-                              onClick={handleSimulatePayment}
-                              className="gap-2 h-10 bg-amber-500 hover:bg-amber-600 text-white"
-                            >
-                              <CheckCircle2 className="h-4 w-4" /> Simuler le paiement (Sandbox)
-                            </Button>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Success state */}
-                      {paymentStep === 'success' && (
-                        <div className="flex flex-col items-center justify-center py-8 space-y-3">
-                          <div className="h-14 w-14 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                            <CheckCircle2 className="h-8 w-8 text-emerald-500" />
-                          </div>
-                          <p className="text-base font-semibold text-emerald-600 dark:text-emerald-400">Paiement confirmé !</p>
-                          <p className="text-sm text-muted-foreground text-center">
-                            Votre abonnement de 31 jours est activé. Redirection vers votre tableau de bord…
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Error state */}
-                      {paymentStep === 'error' && (
-                        <div className="flex flex-col items-center justify-center py-8 space-y-3">
-                          <div className="h-14 w-14 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                            <XCircle className="h-8 w-8 text-red-500" />
-                          </div>
-                          <p className="text-base font-semibold text-red-600 dark:text-red-400">Échec du paiement</p>
-                          <p className="text-sm text-muted-foreground text-center">
-                            {paymentErrorMessage || error || 'Une erreur est survenue. Veuillez réessayer.'}
-                          </p>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => { setPaymentStep('idle'); setError(''); setPaymentErrorMessage(''); }}
-                            className="gap-2 h-10"
-                          >
-                            Réessayer
-                          </Button>
-                        </div>
-                      )}
-                    </motion.div>
-                  )}
                 </motion.div>
               </AnimatePresence>
             </div>
@@ -1674,25 +1537,6 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
                     Suivant
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
-                ) : role === 'VENDOR' && currentStep === 4 ? (
-                  /* Show pay button only in idle state; other states are handled in the body */
-                  paymentStep === 'idle' ? (
-                    <Button
-                      type="button"
-                      onClick={handleRegister}
-                      disabled={paymentLoading || !selectedPaymentMethod}
-                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-11 shadow-md shadow-emerald-200 dark:shadow-emerald-900/30 disabled:opacity-50"
-                    >
-                      {paymentLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <>
-                          <Wallet className="mr-2 h-4 w-4" />
-                          Payer 10 000 FC & activer mon compte
-                        </>
-                      )}
-                    </Button>
-                  ) : null
                 ) : (
                   <Button
                     type="button"

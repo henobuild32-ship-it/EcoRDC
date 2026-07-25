@@ -274,7 +274,7 @@ export default function VendorShopSettings() {
 
   const recStatus = shop?.recommendationStatus || 'NONE';
   const recConfig = recommendationStatusConfig[recStatus] || recommendationStatusConfig.NONE;
-  const shopSlug = name ? `ecordc-${name.toLowerCase().replace(/\s+/g, '-')}.com` : 'ecordc-votre-boutique.com';
+  const shopUrl = shop?.slug ? `${typeof window !== 'undefined' ? window.location.origin : ''}/shop/${shop.slug}` : '';
 
   return (
     <motion.div
@@ -379,7 +379,10 @@ export default function VendorShopSettings() {
               <div>
                 <p className="text-sm font-medium">Lien de votre boutique</p>
                 <p className="text-xs text-emerald-600 dark:text-emerald-400 font-mono">
-                  {shopSlug}
+                  {shopUrl ? `${shop?.slug}-ecordc.com` : 'Chargement...'}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  Redirige vers votre page boutique EcoRDC
                 </p>
               </div>
             </div>

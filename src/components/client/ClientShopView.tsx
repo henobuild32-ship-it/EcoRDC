@@ -207,7 +207,7 @@ export default function ClientShopView() {
   };
 
   const handleShare = () => {
-    const shopUrl = `${window.location.origin}/?shop=${shop?.slug}`;
+    const shopUrl = `${window.location.origin}/shop/${shop?.slug}`;
     const shareText = `Découvrez ${shop?.name} sur EcoRDC ! ${shopUrl}`;
     if (navigator.share) {
       navigator.share({ title: shop?.name, text: shareText, url: shopUrl }).catch(() => {});

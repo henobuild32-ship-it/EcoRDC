@@ -14,16 +14,15 @@ export const GENIUSPAY_WEBHOOK_SECRET = process.env.GENIUSPAY_WEBHOOK_SECRET || 
 export const REGISTRATION_FEE = parseFloat(process.env.VENDOR_REGISTRATION_FEE || '10000');
 export const MONTHLY_SUBSCRIPTION = parseFloat(process.env.VENDOR_MONTHLY_SUBSCRIPTION || '10000');
 
-// Supported GeniusPay payment methods (mobile money + cards)
+// GeniusPay payment method codes (lowercase, matching API docs)
 export const SUPPORTED_PAYMENT_METHODS = [
-  { id: 'ORANGE_MONEY', label: 'Orange Money', icon: '🟠', group: 'mobile' },
-  { id: 'AIRTEL_MONEY', label: 'Airtel Money', icon: '🔴', group: 'mobile' },
-  { id: 'M_PESA', label: 'M-Pesa', icon: '🟢', group: 'mobile' },
-  { id: 'MTN_MOMO', label: 'MTN MoMo', icon: '🟡', group: 'mobile' },
-  { id: 'MOOV_MONEY', label: 'Moov Money', icon: '🔵', group: 'mobile' },
-  { id: 'WAVE', label: 'Wave', icon: '🌊', group: 'mobile' },
-  { id: 'VISA', label: 'Carte Visa', icon: '💳', group: 'card' },
-  { id: 'MASTERCARD', label: 'Carte Mastercard', icon: '💳', group: 'card' },
+  { id: 'orange_money', label: 'Orange Money', icon: '🟠', group: 'mobile' },
+  { id: 'airtel_money', label: 'Airtel Money', icon: '🔴', group: 'mobile' },
+  { id: 'm_pesa', label: 'M-Pesa', icon: '🟢', group: 'mobile' },
+  { id: 'mtn_money', label: 'MTN MoMo', icon: '🟡', group: 'mobile' },
+  { id: 'moov_money', label: 'Moov Money', icon: '🔵', group: 'mobile' },
+  { id: 'wave', label: 'Wave', icon: '🌊', group: 'mobile' },
+  { id: 'card', label: 'Carte bancaire', icon: '💳', group: 'card' },
 ] as const;
 
 // ==========================================
@@ -39,7 +38,6 @@ export function verifyWebhookSignature(payload: string, signature: string): bool
     const receivedSig = signature.trim();
     if (!receivedSig) return false;
 
-    // Compute expected signatures in both hex and base64
     const expectedHex = crypto
       .createHmac('sha256', GENIUSPAY_WEBHOOK_SECRET)
       .update(payload)
@@ -49,12 +47,10 @@ export function verifyWebhookSignature(payload: string, signature: string): bool
       .update(payload)
       .digest('base64');
 
-    // Compare as strings first (length check) to avoid timingSafeEqual errors
     if (receivedSig === expectedHex || receivedSig === expectedBase64) {
       return true;
     }
 
-    // Use timingSafeEqual only when lengths match (constant-time comparison)
     const expectedBuf = Buffer.from(expectedHex, 'utf8');
     const receivedBuf = Buffer.from(receivedSig, 'utf8');
 
@@ -70,12 +66,15 @@ export function verifyWebhookSignature(payload: string, signature: string): bool
 }
 
 // ==========================================
-// Generate unique transaction reference
+// Generate unique transaction reference (MTX format per GeniusPay spec)
 // ==========================================
 export function generateTransactionReference(): string {
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-  return `GP-${timestamp}-${random}`;
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let ref = 'MTX-';
+  for (let i = 0; i < 10; i++) {
+    ref += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return ref;
 }
 
 // ==========================================
@@ -86,12 +85,10 @@ export async function activateOrExtendSubscription(vendorId: string, paymentType
   const payment = await db.payment.findUnique({ where: { id: paymentId } });
 
   const now = new Date();
-  // 31-day subscription as per spec
   const expiryDate = new Date(now);
   expiryDate.setDate(expiryDate.getDate() + 31);
 
   if (!subscription) {
-    // Create new subscription with 31-day period
     await db.subscription.create({
       data: {
         vendorId,
@@ -102,7 +99,6 @@ export async function activateOrExtendSubscription(vendorId: string, paymentType
       },
     });
   } else if (paymentType === 'REGISTRATION' || subscription.status === 'INACTIVE') {
-    // Activate existing inactive subscription (31 days)
     await db.subscription.update({
       where: { id: subscription.id },
       data: {
@@ -113,8 +109,6 @@ export async function activateOrExtendSubscription(vendorId: string, paymentType
       },
     });
   } else {
-    // Extend existing active subscription by 31 days
-    // If current subscription hasn't expired, extend from current expiry date
     const baseDate = subscription.expiryDate && subscription.expiryDate > now
       ? subscription.expiryDate
       : now;
@@ -131,13 +125,11 @@ export async function activateOrExtendSubscription(vendorId: string, paymentType
     });
   }
 
-  // Re-activate vendor account (in case it was suspended)
   await db.user.update({
     where: { id: vendorId },
     data: { isSuspended: false, isActive: true },
   });
 
-  // If REGISTRATION payment, create the shop from stored metadata
   if (paymentType === 'REGISTRATION' && payment?.metadata) {
     try {
       const metadata = JSON.parse(payment.metadata);
@@ -188,7 +180,6 @@ export async function getVendorSubscriptionStatus(vendorId: string) {
     };
   }
 
-  // Auto-expire if past expiry date
   let currentStatus = subscription.status;
   if (subscription.status === 'ACTIVE' && subscription.expiryDate && subscription.expiryDate < new Date()) {
     await db.subscription.update({
@@ -255,43 +246,46 @@ export async function createGeniusPayCheckout(params: {
     };
   }
 
-  // Build the request payload for GeniusPay Merchant API
+  // Build the GeniusPay API payload per docs
   const payload: Record<string, unknown> = {
-    reference,
     amount,
-    currency,
+    currency: currency || 'CDF',
     description,
     customer: {
       name: customerName,
       email: customerEmail,
+      country: 'CD',
     },
-    returnUrl,
-    callbackUrl,
+    success_url: returnUrl,
+    error_url: returnUrl.replace('payment=return', 'payment=error'),
     metadata: {
       platform: 'EcoRDC',
       environment: GENIUSPAY_ENV,
+      reference,
     },
   };
 
   if (customerPhone) {
-    payload.customer = { ...payload.customer as object, phone: customerPhone };
+    (payload.customer as Record<string, unknown>).phone = customerPhone;
   }
 
   if (paymentMethod) {
-    payload.paymentMethod = paymentMethod;
+    payload.payment_method = paymentMethod;
   }
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
+    const timeout = setTimeout(() => controller.abort(), 15000);
 
-    const response = await fetch(`${GENIUSPAY_API_BASE}/transactions`, {
+    console.log('[GENIUSPAY] Creating payment:', JSON.stringify({ ...payload, customer: '...' }));
+
+    const response = await fetch(`${GENIUSPAY_API_BASE}/payments`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${GENIUSPAY_SECRET_KEY}`,
+        'X-API-Key': GENIUSPAY_PUBLIC_KEY,
+        'X-API-Secret': GENIUSPAY_SECRET_KEY,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'X-Public-Key': GENIUSPAY_PUBLIC_KEY,
       },
       body: JSON.stringify(payload),
       signal: controller.signal,
@@ -300,26 +294,27 @@ export async function createGeniusPayCheckout(params: {
     clearTimeout(timeout);
 
     const data = await response.json().catch(() => ({}));
+    console.log('[GENIUSPAY] API response:', response.status, JSON.stringify(data).substring(0, 500));
 
-    if (response.ok && (data.checkoutUrl || data.paymentUrl || data.redirectUrl || data.url)) {
-      const checkoutUrl = data.checkoutUrl || data.paymentUrl || data.redirectUrl || data.url;
+    if (response.ok && (data.checkout_url || data.checkoutUrl || data.payment_url || data.url)) {
+      const checkoutUrl = data.checkout_url || data.checkoutUrl || data.payment_url || data.url;
       return {
         checkoutUrl,
-        transactionId: data.transactionId || data.id || data.reference || reference,
+        transactionId: data.reference || data.id || reference,
         success: true,
         sandbox: false,
         rawResponse: data,
       };
     }
 
-    // In production, don't fall back to sandbox simulation
+    // In production, don't fall back to sandbox
     if (GENIUSPAY_ENV === 'production') {
-      console.error('[GENIUSPAY] API returned error:', response.status, data);
+      console.error('[GENIUSPAY] API error:', response.status, data);
       throw new Error(`GeniusPay API error: ${response.status} - ${JSON.stringify(data)}`);
     }
 
     // Sandbox fallback
-    console.log('[GENIUSPAY] API returned non-OK, falling back to sandbox simulation:', response.status, data);
+    console.log('[GENIUSPAY] API error, sandbox fallback:', response.status, data);
     const simulatedTxId = uuidv4();
     return {
       checkoutUrl: `${returnUrl}?status=pending&reference=${reference}&tx_id=${simulatedTxId}&sandbox=1`,
@@ -330,11 +325,9 @@ export async function createGeniusPayCheckout(params: {
     };
   } catch (error) {
     console.error('[GENIUSPAY] Checkout creation error:', error);
-    // In production, throw the error
     if (GENIUSPAY_ENV === 'production') {
       throw error;
     }
-    // Fall back to sandbox simulation on network errors
     const simulatedTxId = uuidv4();
     return {
       checkoutUrl: `${returnUrl}?status=pending&reference=${reference}&tx_id=${simulatedTxId}&sandbox=1`,
@@ -355,10 +348,8 @@ export async function checkGeniusPayStatus(transactionId: string): Promise<{
 }> {
   if (!GENIUSPAY_SECRET_KEY) {
     if (GENIUSPAY_ENV === 'production') {
-      console.error('[GENIUSPAY] Secret key not configured in production mode');
       return { status: 'failed' };
     }
-    // Sandbox mode - return pending (frontend will use simulate endpoint)
     return { status: 'pending' };
   }
 
@@ -366,12 +357,12 @@ export async function checkGeniusPayStatus(transactionId: string): Promise<{
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
 
-    const response = await fetch(`${GENIUSPAY_API_BASE}/transactions/${transactionId}`, {
+    const response = await fetch(`${GENIUSPAY_API_BASE}/payments/${transactionId}`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${GENIUSPAY_SECRET_KEY}`,
+        'X-API-Key': GENIUSPAY_PUBLIC_KEY,
+        'X-API-Secret': GENIUSPAY_SECRET_KEY,
         'Accept': 'application/json',
-        'X-Public-Key': GENIUSPAY_PUBLIC_KEY,
       },
       signal: controller.signal,
     });
@@ -384,7 +375,7 @@ export async function checkGeniusPayStatus(transactionId: string): Promise<{
       const rawStatus = (data.status || data.state || '').toString().toUpperCase();
       let status: 'pending' | 'success' | 'failed' = 'pending';
 
-      if (['SUCCESS', 'COMPLETED', 'PAID', 'CONFIRMED', 'APPROVED'].includes(rawStatus)) {
+      if (['COMPLETED', 'SUCCESS', 'PAID', 'CONFIRMED', 'APPROVED'].includes(rawStatus)) {
         status = 'success';
       } else if (['FAILED', 'CANCELLED', 'CANCELED', 'REJECTED', 'DECLINED', 'EXPIRED'].includes(rawStatus)) {
         status = 'failed';
