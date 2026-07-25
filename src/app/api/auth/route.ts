@@ -141,90 +141,107 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // If vendor, create trial subscription + shop immediately (no payment required)
-      if (role === 'VENDOR' && shopName) {
-        const now = new Date();
-        const expiryDate = new Date(now);
-        expiryDate.setDate(expiryDate.getDate() + 30);
+       // If vendor, create trial subscription + shop immediately (no payment required)
+       if (role === 'VENDOR' && shopName) {
+         const now = new Date();
+         const expiryDate = new Date(now);
+         expiryDate.setDate(expiryDate.getDate() + 30);
 
-        // Create 30-day TRIAL subscription
-        const subscription = await db.subscription.create({
-          data: {
-            vendorId: user.id,
-            status: 'TRIAL',
-            startDate: now,
-            expiryDate,
-            amount: 0,
-          },
-        });
+         // Generate unique slug efficiently
+         let baseSlug = generateShopSlug(shopName);
+         let slug = baseSlug;
+         let suffix = 1;
+         const maxAttempts = 50;
+         while (suffix < maxAttempts) {
+           const existing = await db.shop.findUnique({ where: { slug } });
+           if (!existing) break;
+           slug = `${baseSlug}-${suffix}`;
+           suffix++;
+         }
+         if (suffix >= maxAttempts) {
+           slug = `${baseSlug}-${Date.now()}`;
+         }
 
-        // Create shop immediately with unique slug
-        let baseSlug = generateShopSlug(shopName);
-        let slug = baseSlug;
-        let suffix = 1;
-        while (await db.shop.findUnique({ where: { slug } })) {
-          slug = `${baseSlug}-${suffix}`;
-          suffix++;
-        }
+         // Create all independent records in parallel
+         let subscriptionId: string;
+         let shopId: string;
+         try {
+           const [createdSubscription, createdShop] = await Promise.all([
+             db.subscription.create({
+               data: {
+                 vendorId: user.id,
+                 status: 'TRIAL',
+                 startDate: now,
+                 expiryDate,
+                 amount: 0,
+               },
+             }),
+             db.shop.create({
+               data: {
+                 name: shopName,
+                 slug,
+                 description: shopDescription || null,
+                 logo: shopLogo || null,
+                 category: shopCategory || null,
+                 address: shopAddress || address || null,
+                 city: shopCity || city || null,
+                 country: shopCountry || country || 'RD Congo',
+                 phone: phone || null,
+                 email: email || null,
+                 commune: body.shopCommune || null,
+                 hours: body.shopHours || null,
+                 socials: body.shopSocials || null,
+                 currency: body.shopCurrency || 'CDF',
+                 ownerId: user.id,
+                 isActive: true,
+               },
+             }),
+           ]);
+           subscriptionId = createdSubscription.id;
+           shopId = createdShop.id;
+         } catch (createError) {
+           // Rollback: delete the user if subscription/shop creation failed
+           await db.user.delete({ where: { id: user.id } }).catch(() => {});
+           console.error('Vendor registration create error:', createError);
+           return NextResponse.json({ error: 'Erreur lors de la création de la boutique' }, { status: 500 });
+         }
 
-        const shop = await db.shop.create({
-          data: {
-            name: shopName,
-            slug,
-            description: shopDescription || null,
-            logo: shopLogo || null,
-            category: shopCategory || null,
-            address: shopAddress || address || null,
-            city: shopCity || city || null,
-            country: shopCountry || country || 'RD Congo',
-            phone: phone || null,
-            email: email || null,
-            commune: body.shopCommune || null,
-            hours: body.shopHours || null,
-            socials: body.shopSocials || null,
-            currency: body.shopCurrency || 'CDF',
-            ownerId: user.id,
-            isActive: true,
-          },
-        });
+         // Record free trial payment + notification + activity in parallel
+         await Promise.all([
+           db.payment.create({
+             data: {
+               vendorId: user.id,
+               subscriptionId,
+               amount: 0,
+               currency: 'CDF',
+               type: 'SUBSCRIPTION',
+               status: 'COMPLETED',
+               paymentMethod: 'ADMIN_GRANT',
+               description: 'Essai gratuit 30 jours - Inscription vendeur',
+             },
+           }),
+           db.notification.create({
+             data: {
+               userId: user.id,
+               title: 'Bienvenue sur EcoRDC !',
+               message: `Votre boutique "${shopName}" est maintenant active pour 30 jours. Après cette période, vous devrez souscrire à l'abonnement (10 000 FC/mois).`,
+               type: 'SYSTEM',
+             },
+           }),
+           db.activityLog.create({
+             data: { userId: user.id, action: 'REGISTER', details: `Inscription vendeur - Essai gratuit 30 jours - Boutique "${shopName}" créée` },
+           }),
+         ]);
 
-        // Record free trial as admin grant for audit
-        await db.payment.create({
-          data: {
-            vendorId: user.id,
-            subscriptionId: subscription.id,
-            amount: 0,
-            currency: 'CDF',
-            type: 'SUBSCRIPTION',
-            status: 'COMPLETED',
-            paymentMethod: 'ADMIN_GRANT',
-            description: 'Essai gratuit 30 jours - Inscription vendeur',
-          },
-        });
+         const token = generateToken({ userId: user.id, email: user.email, role: user.role });
 
-        // Welcome notification
-        await db.notification.create({
-          data: {
-            userId: user.id,
-            title: 'Bienvenue sur EcoRDC !',
-            message: `Votre boutique "${shopName}" est maintenant active pour 30 jours. Après cette période, vous devrez souscrire à l'abonnement (10 000 FC/mois).`,
-            type: 'SYSTEM',
-          },
-        });
+         const userResponse = await formatUserResponse(user);
 
-        const token = generateToken({ userId: user.id, email: user.email, role: user.role });
-
-        await db.activityLog.create({
-          data: { userId: user.id, action: 'REGISTER', details: `Inscription vendeur - Essai gratuit 30 jours - Boutique "${shopName}" créée` },
-        });
-
-        const userResponse = await formatUserResponse(user);
-
-        return NextResponse.json({
-          user: userResponse,
-          token,
-        });
-      }
+         return NextResponse.json({
+           user: userResponse,
+           token,
+         });
+       }
 
       const token = generateToken({ userId: user.id, email: user.email, role: user.role });
 
