@@ -110,7 +110,12 @@ export default function ClientShopList() {
         break;
       case 'recommended':
       default:
-        result.sort((a, b) => (b.isRecommended ? 1 : 0) - (a.isRecommended ? 1 : 0));
+        // Recommended first, then alphabetical
+        result.sort((a, b) => {
+          if (a.isRecommended && !b.isRecommended) return -1;
+          if (!a.isRecommended && b.isRecommended) return 1;
+          return a.name.localeCompare(b.name);
+        });
         break;
     }
     return result;

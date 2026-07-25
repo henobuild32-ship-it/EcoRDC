@@ -114,7 +114,7 @@ export default function VendorShopSettings() {
             setCategory((myShop as any).category || '');
             setAddress((myShop as any).address || '');
             setCity((myShop as any).city || '');
-            setCountry((myShop as any).country || 'RDC');
+            setCountry((myShop as any).country || 'RD Congo');
             setLogo(myShop.logo || '');
             setCoverImage(myShop.coverImage || '');
           }
@@ -476,9 +476,7 @@ export default function VendorShopSettings() {
                       <SelectValue placeholder="Sélectionner" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="RDC">RDC</SelectItem>
-                      <SelectItem value="Congo">Congo</SelectItem>
-                      <SelectItem value="Autre">Autre</SelectItem>
+                      <SelectItem value="RD Congo">RD Congo</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

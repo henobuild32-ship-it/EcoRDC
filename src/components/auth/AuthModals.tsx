@@ -55,26 +55,6 @@ import {
 // ---- Countries list ----
 const COUNTRIES = [
   'RD Congo',
-  'Congo',
-  'Cameroun',
-  'Gabon',
-  'Centrafrique',
-  'Angola',
-  'Tanzanie',
-  'Ouganda',
-  'Rwanda',
-  'Burundi',
-  'Zambie',
-  'Soudan du Sud',
-  'Kenya',
-  'Nigeria',
-  "Côte d'Ivoire",
-  'Sénégal',
-  'Mali',
-  'Ghana',
-  'Afrique du Sud',
-  'Maroc',
-  'Autre',
 ];
 
 const SHOP_CATEGORIES = [
@@ -773,7 +753,6 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
           password,
           name: name.trim(),
           phone: phone.trim() || undefined,
-          avatar: avatar || undefined,
           address: address.trim() || undefined,
           city: city.trim() || undefined,
           country,
@@ -816,7 +795,6 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
           password,
           name: name.trim(),
           phone: phone.trim() || undefined,
-          avatar: avatar || undefined,
           address: address.trim() || undefined,
           city: city.trim() || undefined,
           country,
@@ -873,7 +851,6 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
           password,
           name: name.trim(),
           phone: phone.trim() || undefined,
-          avatar: avatar || undefined,
           address: address.trim() || undefined,
           city: city.trim() || undefined,
           country,
@@ -1171,29 +1148,20 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
                   {currentStep === 1 && (
                     /* ---- Step 1: Personal Info ---- */
                     <>
-                      {/* Photo + Name row */}
-                      <div className="flex gap-4 items-start">
-                        <ImageUploadZone
-                          label="Photo de profil"
-                          imageUrl={avatar}
-                          onImageSet={setAvatar}
-                          onImageClear={() => setAvatar('')}
-                          size="sm"
-                        />
-                        <div className="flex-1 space-y-2">
-                          <Label htmlFor="reg-name" className="text-sm font-medium">
-                            Nom complet <span className="text-red-500">*</span>
-                          </Label>
-                          <div className="relative">
-                            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                              id="reg-name"
-                              placeholder="Jean Mukendi"
-                              value={name}
-                              onChange={(e) => setName(e.target.value)}
-                              className="pl-10 h-10"
-                            />
-                          </div>
+                      {/* Name */}
+                      <div className="space-y-2">
+                        <Label htmlFor="reg-name" className="text-sm font-medium">
+                          Nom complet <span className="text-red-500">*</span>
+                        </Label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="reg-name"
+                            placeholder="Jean Mukendi"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            className="pl-10 h-10"
+                          />
                         </div>
                       </div>
 

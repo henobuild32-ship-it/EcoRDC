@@ -331,9 +331,9 @@ export default function ClientProfile() {
             <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4">
               <div className="relative">
                 <div className="h-24 w-24 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white text-3xl font-bold shadow-xl border-4 border-background overflow-hidden ring-4 ring-emerald-100 dark:ring-emerald-900/30">
-                  {avatarPreview || user?.avatar ? (
+                  {user?.avatar ? (
                     <img
-                      src={avatarPreview || user?.avatar || ''}
+                      src={user.avatar}
                       alt={user?.name}
                       className="w-full h-full object-cover"
                     />
@@ -341,25 +341,6 @@ export default function ClientProfile() {
                     user?.name?.charAt(0).toUpperCase()
                   )}
                 </div>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center cursor-pointer shadow-lg transition-colors"
-                  disabled={uploading}
-                >
-                  {uploading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Camera className="h-4 w-4" />
-                  )}
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarUpload}
-                  className="hidden"
-                  disabled={uploading}
-                />
               </div>
 
               <div className="text-center sm:text-left flex-1">
@@ -494,10 +475,9 @@ export default function ClientProfile() {
                       <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="country"
-                        value={country}
-                        onChange={(e) => setCountry(e.target.value)}
-                        className="pl-10"
-                        placeholder="RDC"
+                        value={country || 'RD Congo'}
+                        readOnly
+                        className="pl-10 bg-muted"
                       />
                     </div>
                   </div>
