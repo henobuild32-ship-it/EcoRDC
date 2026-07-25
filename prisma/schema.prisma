@@ -1,0 +1,304 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  password    String
+  name        String
+  phone       String?
+  avatar      String?
+  address     String?
+  city        String?
+  country     String?
+  role        String   @default("CLIENT") // CLIENT, VENDOR, ADMIN
+  isActive    Boolean  @default(true)
+  isSuspended Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  shop             Shop?
+  sentMessages     Message[]       @relation("SentMessages")
+  receivedMessages Message[]       @relation("ReceivedMessages")
+  customerOrders   Order[]         @relation("CustomerOrders")
+  cartItems        CartItem[]
+  favorites        Favorite[]
+  followedShops    FollowedShop[]
+  notifications    Notification[]
+  passwordResets   PasswordReset[]
+  activityLogs     ActivityLog[]
+  subscription     Subscription?
+  payments         Payment[]
+  reportedBy       Report[]        @relation("ReportReporter")
+  resolvedReports  Report[]        @relation("ReportResolver")
+}
+
+model Shop {
+  id                   String    @id @default(cuid())
+  name                 String
+  slug                 String    @unique
+  description          String?
+  logo                 String?
+  coverImage           String?
+  category             String?
+  address              String?
+  city                 String?
+  country              String?
+  ownerId              String    @unique
+  isRecommended        Boolean   @default(false)
+  recommendationStatus String?   @default("NONE") // NONE, PENDING, APPROVED, REJECTED
+  isActive             Boolean   @default(true)
+  // Verification badges (JSON array: VERIFIED_SHOP, VERIFIED_SUPPLIER, PREMIUM_SUPPLIER, RECOMMENDED_SELLER)
+  badges               String?   @default("[]")
+  // Suspension fields
+  suspensionType       String? // TEMPORARY, PERMANENT, null
+  suspensionReason     String?
+  suspensionComment    String?
+  suspendedAt          DateTime?
+  suspendedUntil       DateTime?
+  // Shop stats snapshot
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  owner      User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  products   Product[]
+  orders     Order[]
+  promotions Promotion[]
+  followers  FollowedShop[]
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Float
+  images      String   @default("") // comma-separated URLs
+  category    String?
+  stock       Int      @default(0)
+  isActive    Boolean  @default(true)
+  shopId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  shop       Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+  cartItems  CartItem[]
+  favorites  Favorite[]
+}
+
+model Order {
+  id          String   @id @default(cuid())
+  orderNumber String   @unique
+  customerId  String
+  shopId      String
+  status      String   @default("PENDING") // PENDING, CONFIRMED, PAID, SHIPPED, DELIVERED, CANCELLED
+  totalAmount Float
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  customer User        @relation("CustomerOrders", fields: [customerId], references: [id])
+  shop     Shop        @relation(fields: [shopId], references: [id])
+  items    OrderItem[]
+  invoice  Invoice?
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Float
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+}
+
+model CartItem {
+  id        String @id @default(cuid())
+  userId    String
+  productId String
+  quantity  Int    @default(1)
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  content    String
+  attachment String?
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  sender   User @relation("SentMessages", fields: [senderId], references: [id])
+  receiver User @relation("ReceivedMessages", fields: [receiverId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String   @default("INFO") // INFO, ORDER, MESSAGE, SYSTEM
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Invoice {
+  id            String   @id @default(cuid())
+  invoiceNumber String   @unique
+  orderId       String   @unique
+  shopId        String
+  customerId    String
+  totalAmount   Float
+  status        String   @default("PENDING") // PENDING, PAID
+  createdAt     DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id])
+}
+
+model PasswordReset {
+  id        String   @id @default(cuid())
+  userId    String
+  status    String   @default("PENDING") // PENDING, APPROVED, RESOLVED
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  details   String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+}
+
+model AdminMessage {
+  id          String   @id @default(cuid())
+  type        String   @default("GLOBAL") // GLOBAL, ROLE_TARGETED, PRIVATE, MULTI
+  targetId    String? // null for global, userId for private
+  targetRole  String? // VENDOR, CLIENT, ALL (for ROLE_TARGETED)
+  messageType String   @default("INFO") // SYSTEM, ALERT, INFO, PROMOTION, MAINTENANCE
+  title       String
+  message     String
+  adminId     String? // ID of admin who sent the message
+  createdAt   DateTime @default(now())
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+}
+
+model FollowedShop {
+  id        String   @id @default(cuid())
+  userId    String
+  shopId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, shopId])
+}
+
+model Promotion {
+  id          String    @id @default(cuid())
+  shopId      String
+  title       String
+  description String?
+  discount    Float? // percentage discount
+  startDate   DateTime?
+  endDate     DateTime?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+}
+
+// ==========================================
+// VENDOR SUBSCRIPTION SYSTEM
+// ==========================================
+// Vendors pay 10,000 FC to register + 10,000 FC/month subscription
+// Account suspended automatically if subscription expires
+
+model Subscription {
+  id         String    @id @default(cuid())
+  vendorId   String    @unique // One subscription per vendor
+  status     String    @default("INACTIVE") // INACTIVE, ACTIVE, EXPIRED, TRIAL
+  startDate  DateTime?
+  expiryDate DateTime?
+  amount     Float     @default(10000) // Monthly subscription amount in FC
+  freeMonths Int       @default(0) // Free months granted by admin
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  vendor   User      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  payments Payment[]
+}
+
+model Payment {
+  id             String   @id @default(cuid())
+  vendorId       String
+  amount         Float
+  currency       String   @default("CDF") // CDF (Congolese Francs)
+  type           String   @default("SUBSCRIPTION") // REGISTRATION, SUBSCRIPTION, RENEWAL
+  status         String   @default("PENDING") // PENDING, COMPLETED, FAILED, CANCELLED
+  paymentMethod  String   @default("PAWAPAY") // PAWAPAY, MANUAL, ADMIN_GRANT
+  transactionRef String? // PawaPay depositId or reference
+  pawapayStatus  String? // PawaPay status: ACCEPTED, COMPLETED, REJECTED
+  description    String?
+  metadata       String? // JSON string for additional data
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  vendor         User          @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+  subscriptionId String?
+}
+
+// ==========================================
+// REPORTS & COMPLAINTS SYSTEM
+// ==========================================
+// Users can report products, shops, or other users
+// Admins review and process reports
+
+model Report {
+  id            String    @id @default(cuid())
+  type          String // PRODUCT, SHOP, USER, COMPLAINT
+  reporterId    String
+  targetId      String // productId, shopId, or userId
+  reason        String // Reason category: SPAM, FRAUD, INAPPROPRIATE, COUNTERFEIT, OTHER
+  description   String? // Detailed description from reporter
+  status        String    @default("PENDING") // PENDING, REVIEWING, RESOLVED, DISMISSED
+  priority      String    @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+  adminResponse String? // Admin's response/decision note
+  resolvedById  String? // Admin who resolved the report
+  resolvedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  reporter   User  @relation("ReportReporter", fields: [reporterId], references: [id])
+  resolvedBy User? @relation("ReportResolver", fields: [resolvedById], references: [id])
+}

@@ -1,0 +1,27 @@
+{
+  "name": "EcoRDC - Plateforme E-commerce",
+  "short_name": "EcoRDC",
+  "description": "Plateforme e-commerce moderne pour vendre et acheter en RDC",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#10B981",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/ecordc-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/ecordc-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["shopping", "business"],
+  "lang": "fr",
+  "dir": "ltr"
+}
