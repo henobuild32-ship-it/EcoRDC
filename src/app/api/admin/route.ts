@@ -1516,6 +1516,94 @@ Pour toute question, contactez le support EcoRDC.`;
       return NextResponse.json({ success: true });
     }
 
+    if (action === 'ensure-shop') {
+      const { vendorId } = body;
+      if (!vendorId) return NextResponse.json({ error: 'vendorId requis' }, { status: 400 });
+
+      const vendor = await db.user.findUnique({ where: { id: vendorId } });
+      if (!vendor || vendor.role !== 'VENDOR') {
+        return NextResponse.json({ error: 'Vendeur non trouvé' }, { status: 404 });
+      }
+
+      const existingShop = await db.shop.findUnique({ where: { ownerId: vendor.id } });
+      if (existingShop) {
+        return NextResponse.json({ error: 'Ce vendeur a déjà une boutique', shopId: existingShop.id }, { status: 409 });
+      }
+
+      const now = new Date();
+      const expiryDate = new Date(now);
+      expiryDate.setDate(expiryDate.getDate() + 30);
+
+      const baseSlug = generateShopSlug(vendor.name);
+      let slug = baseSlug;
+      let suffix = 1;
+      while (await db.shop.findUnique({ where: { slug } })) {
+        slug = `${baseSlug}-${suffix}`;
+        suffix++;
+      }
+
+      const shop = await db.shop.create({
+        data: {
+          name: `${vendor.name} - Boutique`,
+          slug,
+          description: null,
+          category: null,
+          address: vendor.address || null,
+          city: vendor.city || null,
+          country: vendor.country || 'RD Congo',
+          phone: vendor.phone || null,
+          email: vendor.email || null,
+          commune: null,
+          hours: null,
+          socials: null,
+          currency: 'CDF',
+          ownerId: vendor.id,
+          isActive: true,
+        },
+      });
+
+      await db.subscription.create({
+        data: {
+          vendorId: vendor.id,
+          status: 'TRIAL',
+          startDate: now,
+          expiryDate,
+          amount: 0,
+        },
+      });
+
+      await db.payment.create({
+        data: {
+          vendorId: vendor.id,
+          amount: 0,
+          currency: 'CDF',
+          type: 'SUBSCRIPTION',
+          status: 'COMPLETED',
+          paymentMethod: 'ADMIN_GRANT',
+          description: 'Boutique créée par l\'administrateur pour un vendeur existant',
+        },
+      });
+
+      await db.notification.create({
+        data: {
+          userId: vendor.id,
+          title: 'Boutique créée',
+          message: `Une boutique a été créée pour votre compte. Profitez de 30 jours d'essai gratuit !`,
+          type: 'SYSTEM',
+        },
+      });
+
+      await db.activityLog.create({
+        data: {
+          userId: payload.userId,
+          action: 'ENSURE_SHOP',
+          details: `Boutique créée pour le vendeur ${vendor.name} (${vendor.email})`,
+        },
+      });
+
+      return NextResponse.json({ success: true, shop: { id: shop.id, name: shop.name, slug: shop.slug } });
+    }
+
     return NextResponse.json({ error: 'Action non reconnue' }, { status: 400 });
   } catch (error) {
     console.error('Admin POST error:', error);

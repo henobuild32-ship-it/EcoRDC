@@ -39,6 +39,7 @@ import {
   Star, Phone, Eye, Gift, BadgeCheck, PackageCheck, Crown, Clock,
   CreditCard, Activity, Wallet, MapPin, Ban, RotateCcw, AlertTriangle,
   UserPlus, KeyRound, Copy, EyeOff, RefreshCw, Image as ImageIcon, CheckCircle2, Info,
+  PlusCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -148,6 +149,10 @@ export default function AdminVendors() {
   const [freeShopDuration, setFreeShopDuration] = useState('7');
   const [freeShopCustom, setFreeShopCustom] = useState('');
   const [freeShopReason, setFreeShopReason] = useState('');
+
+  // Ensure shop dialog state
+  const [ensureShopDialog, setEnsureShopDialog] = useState(false);
+  const [ensureShopLoading, setEnsureShopLoading] = useState(false);
 
   // Suspend shop dialog state (rich dialog with motif + comment)
   const [suspendShopDialog, setSuspendShopDialog] = useState(false);
@@ -435,6 +440,31 @@ export default function AdminVendors() {
       toast.error('Erreur de connexion');
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleEnsureShop = async () => {
+    if (!selectedVendor || !token) return;
+    setEnsureShopLoading(true);
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: 'ensure-shop', vendorId: selectedVendor.id }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(`Boutique "${data.shop?.name}" créée avec succès`);
+        setEnsureShopDialog(false);
+        setSelectedVendor(null);
+        await fetchVendors();
+      } else {
+        toast.error(data.error || 'Erreur lors de la création de la boutique');
+      }
+    } catch {
+      toast.error('Erreur de connexion');
+    } finally {
+      setEnsureShopLoading(false);
     }
   };
 
@@ -729,7 +759,7 @@ export default function AdminVendors() {
                           <TableCell className="hidden md:table-cell text-sm text-slate-400">{vendor.email}</TableCell>
                           <TableCell className="hidden lg:table-cell text-sm text-slate-400">{vendor.phone || '—'}</TableCell>
                           <TableCell className="hidden sm:table-cell">
-                            {vendor.shop ? (
+                              {vendor.shop ? (
                               <div className="flex flex-col gap-1 min-w-0">
                                 <div className="flex items-center gap-1.5">
                                   {vendor.shop.logo ? (
@@ -751,7 +781,17 @@ export default function AdminVendors() {
                                 )}
                               </div>
                             ) : (
-                              <span className="text-sm text-slate-500">—</span>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-[10px] bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
+                                onClick={() => {
+                                  setSelectedVendor(vendor);
+                                  setEnsureShopDialog(true);
+                                }}
+                              >
+                                <PlusCircle className="h-3 w-3 mr-1" />Créer boutique
+                              </Button>
                             )}
                           </TableCell>
                           <TableCell className="hidden xl:table-cell">
@@ -972,6 +1012,33 @@ export default function AdminVendors() {
                 className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
               >
                 <Gift className="h-4 w-4" /> {actionLoading ? 'Attribution...' : 'Attribuer'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Ensure Shop Dialog */}
+        <Dialog open={ensureShopDialog} onOpenChange={(open) => { setEnsureShopDialog(open); if (!open) setSelectedVendor(null); }}>
+          <DialogContent className="bg-[#1e293b] border-[#334155] text-white max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <PlusCircle className="h-5 w-5 text-emerald-400" /> Créer une boutique pour ce vendeur
+              </DialogTitle>
+            </DialogHeader>
+            {selectedVendor && (
+              <div className="space-y-4 py-2">
+                <div className="p-3 rounded-xl bg-slate-800 border border-slate-700">
+                  <p className="text-sm font-medium text-white">{selectedVendor.name}</p>
+                  <p className="text-xs text-slate-400">{selectedVendor.email}</p>
+                  <p className="text-xs text-amber-400 mt-1">Ce vendeur n'a pas encore de boutique. Une boutique gratuite (30 jours d'essai) sera créée automatiquement.</p>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setEnsureShopDialog(false)} className="border-[#334155] text-slate-300 hover:bg-[#334155]">Annuler</Button>
+              <Button onClick={handleEnsureShop} disabled={ensureShopLoading} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                {ensureShopLoading && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
+                Créer la boutique
               </Button>
             </DialogFooter>
           </DialogContent>
