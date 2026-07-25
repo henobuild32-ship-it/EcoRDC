@@ -223,7 +223,7 @@ export default function AdminSubscriptions() {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'grant-free-months',
-          subscriptionId: selectedSub.id,
+          vendorId: selectedSub.vendor.id,
           months,
           reason,
         }),
@@ -248,7 +248,7 @@ export default function AdminSubscriptions() {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'extend-subscription',
-          subscriptionId: selectedSub.id,
+          vendorId: selectedSub.vendor.id,
           months,
           reason,
         }),
@@ -272,8 +272,8 @@ export default function AdminSubscriptions() {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'change-status',
-          subscriptionId: selectedSub.id,
+          action: 'modify-status',
+          vendorId: selectedSub.vendor.id,
           status: newStatus,
         }),
       });
@@ -292,7 +292,7 @@ export default function AdminSubscriptions() {
       await fetch('/api/subscriptions', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'reactivate-vendor', subscriptionId: sub.id }),
+        body: JSON.stringify({ action: 'reactivate-vendor', vendorId: sub.vendor.id }),
       });
       await fetchData();
     } catch { /* silent */ }
