@@ -137,6 +137,17 @@ export default function VendorShopSettings() {
     fetchShop();
   }, [token, user]);
 
+  // Sync personal info when user data changes (after save)
+  useEffect(() => {
+    if (user) {
+      setUserName(user.name || '');
+      setUserEmail(user.email || '');
+      setUserPhone(user.phone || '');
+      setUserAddress((user as any).address || '');
+      setUserCity((user as any).city || '');
+    }
+  }, [user]);
+
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
