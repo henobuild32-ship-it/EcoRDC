@@ -284,10 +284,9 @@ export default function VendorDashboard() {
   }, []);
 
   const handleCopyLink = async () => {
-    const url = user?.shop?.slug
-      ? `${window.location.origin}/shop/${user.shop.slug}`
-      : '';
-    if (!url) return;
+    const slug = user?.shop?.slug;
+    if (!slug) return;
+    const url = `${window.location.origin}/shop/${slug}`;
     try {
       await navigator.clipboard.writeText(url);
     } catch {
@@ -597,10 +596,10 @@ export default function VendorDashboard() {
                 </div>
                 <div>
                   <h1 className="text-2xl sm:text-3xl font-bold">
-                    {greeting}, {user?.name?.split(' ')[0] || 'Vendeur'} 👋
+                    {greeting}, {user?.shop?.name || user?.name?.split(' ')[0] || 'Vendeur'} 👋
                   </h1>
                   <p className="text-emerald-100 mt-1">
-                    Gérez votre boutique et vos commandes
+                    {user?.shop?.name ? `Bienvenue sur ${user.shop.name}` : 'Gérez votre boutique et vos commandes'}
                   </p>
                   <div className="flex items-center gap-2 mt-2">
                     <ExternalLink className="h-3 w-3 text-emerald-200/70" />

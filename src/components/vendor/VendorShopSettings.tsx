@@ -80,7 +80,7 @@ const cities = [
 ];
 
 export default function VendorShopSettings() {
-  const { user, token, setCurrentView, setUser, setCurrentView: setView } = useAppStore();
+  const { user, token, setCurrentView, setUser } = useAppStore();
   const [shop, setShop] = useState<Shop | null>(null);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
@@ -121,34 +121,48 @@ export default function VendorShopSettings() {
 
   useEffect(() => {
     if (!token) return;
-    const fetchShop = async () => {
-      try {
-        const res = await fetch('/api/shops', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const myShop = (data.shops || []).find(
-            (s: Shop) => s.ownerId === user?.id
-          );
-          if (myShop) {
-            setShop(myShop);
-            setName(myShop.name);
-            setDescription(myShop.description || '');
-            setCategory((myShop as any).category || '');
-            setAddress((myShop as any).address || '');
-            setCity((myShop as any).city || '');
-            setCountry((myShop as any).country || 'RD Congo');
-            setLogo(myShop.logo || '');
+    const myShop = user?.shop as Shop | null | undefined;
+    if (myShop) {
+      setShop(myShop);
+      setName(myShop.name);
+      setDescription(myShop.description || '');
+      setCategory((myShop as any).category || '');
+      setAddress((myShop as any).address || '');
+      setCity((myShop as any).city || '');
+      setCountry((myShop as any).country || 'RD Congo');
+      setLogo(myShop.logo || '');
+      setLoading(false);
+    } else {
+      // Fallback: fetch from API
+      const fetchShop = async () => {
+        try {
+          const res = await fetch('/api/shops', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            const found = (data.shops || []).find(
+              (s: Shop) => s.ownerId === user?.id
+            );
+            if (found) {
+              setShop(found);
+              setName(found.name);
+              setDescription(found.description || '');
+              setCategory((found as any).category || '');
+              setAddress((found as any).address || '');
+              setCity((found as any).city || '');
+              setCountry((found as any).country || 'RD Congo');
+              setLogo(found.logo || '');
+            }
           }
+        } catch {
+          // silently handle
+        } finally {
+          setLoading(false);
         }
-      } catch {
-        // silently handle
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchShop();
+      };
+      fetchShop();
+    }
   }, [token, user]);
 
   // Sync personal info when user data changes (after save)
@@ -184,7 +198,9 @@ export default function VendorShopSettings() {
       setMessage({ type: 'error', text: 'Vous devez être connecté' });
       return;
     }
-    if (!shop) {
+    // Use shop from state or fallback to user.shop from store
+    const targetShop = shop || (user?.shop as Shop | undefined);
+    if (!targetShop) {
       setMessage({ type: 'error', text: 'Aucune boutique trouvée' });
       return;
     }
@@ -197,7 +213,7 @@ export default function VendorShopSettings() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          shopId: shop.id,
+          shopId: targetShop.id,
           name,
           description,
           logo,
