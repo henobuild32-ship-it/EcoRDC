@@ -50,6 +50,12 @@ model Shop {
   address              String?
   city                 String?
   country              String?
+  phone                String?
+  email                String?
+  commune              String?
+  hours                String?
+  socials              String?
+  currency             String?   @default("CDF")
   ownerId              String    @unique
   isRecommended        Boolean   @default(false)
   recommendationStatus String?   @default("NONE") // NONE, PENDING, APPROVED, REJECTED

@@ -680,50 +680,54 @@ export default function AppHeader() {
             )}
 
             {/* User menu dropdown */}
-            {user && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-2 px-2 h-9">
-                    {user.avatar ? (
-                      <img
-                        src={user.avatar}
-                        alt={user.name}
-                        className="h-8 w-8 rounded-full object-cover border border-border shadow-sm"
-                      />
-                    ) : (
-                      <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white text-sm font-semibold shadow-sm">
-                        {user.name.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <span className="hidden sm:inline text-sm font-medium max-w-[120px] truncate">
-                      {user.name}
-                    </span>
-                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground hidden sm:inline" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64">
-                  <DropdownMenuLabel>
-                    <div className="flex items-center gap-3">
-                      {user.avatar ? (
+            {user && (() => {
+              const displayName = (user.role === 'VENDOR' && user.shop?.name) ? user.shop.name : user.name;
+              const displayAvatar = (user.role === 'VENDOR' && user.shop?.logo) ? user.shop.logo : user.avatar;
+
+              return (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="flex items-center gap-2 px-2 h-9">
+                      {displayAvatar ? (
                         <img
-                          src={user.avatar}
-                          alt={user.name}
-                          className="h-10 w-10 rounded-full object-cover border border-border"
+                          src={displayAvatar}
+                          alt={displayName}
+                          className="h-8 w-8 rounded-full object-cover border border-border shadow-sm"
                         />
                       ) : (
-                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white text-sm font-bold shadow-md">
-                          {user.name.charAt(0).toUpperCase()}
+                        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white text-sm font-semibold shadow-sm">
+                          {displayName.charAt(0).toUpperCase()}
                         </div>
                       )}
-                      <div className="flex-1 min-w-0">
-                        <span className="font-medium block truncate">{user.name}</span>
-                        <span className="text-xs text-muted-foreground font-normal block truncate">{user.email}</span>
-                        <Badge className={`mt-1 text-[10px] border-0 ${getRoleBadgeClass(user.role)}`}>
-                          {getRoleLabel(user.role)}
-                        </Badge>
+                      <span className="hidden sm:inline text-sm font-medium max-w-[120px] truncate">
+                        {displayName}
+                      </span>
+                      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground hidden sm:inline" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-64">
+                    <DropdownMenuLabel>
+                      <div className="flex items-center gap-3">
+                        {displayAvatar ? (
+                          <img
+                            src={displayAvatar}
+                            alt={displayName}
+                            className="h-10 w-10 rounded-full object-cover border border-border"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white text-sm font-bold shadow-md">
+                            {displayName.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <span className="font-medium block truncate">{displayName}</span>
+                          <span className="text-xs text-muted-foreground font-normal block truncate">{user.email}</span>
+                          <Badge className={`mt-1 text-[10px] border-0 ${getRoleBadgeClass(user.role)}`}>
+                            {getRoleLabel(user.role)}
+                          </Badge>
+                        </div>
                       </div>
-                    </div>
-                  </DropdownMenuLabel>
+                    </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <div className="px-2 py-1.5">
                     <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
@@ -779,7 +783,8 @@ export default function AppHeader() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            )}
+            );
+          })()}
 
             {/* Mobile menu trigger */}
             {user && (

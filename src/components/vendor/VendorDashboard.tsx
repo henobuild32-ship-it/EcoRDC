@@ -32,6 +32,7 @@ import {
   RefreshCw,
   Crown,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -285,22 +286,30 @@ export default function VendorDashboard() {
 
   const handleCopyLink = async () => {
     const slug = user?.shop?.slug;
-    if (!slug) return;
+    if (!slug) {
+      toast.error('Aucun lien de boutique disponible');
+      return;
+    }
     const url = `${window.location.origin}/shop/${slug}`;
     try {
-      await navigator.clipboard.writeText(url);
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = url;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      setCopied(true);
+      toast.success('✅ Lien copié avec succès');
+      setTimeout(() => setCopied(false), 2000);
     } catch {
-      const textarea = document.createElement('textarea');
-      textarea.value = url;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
+      toast.error('Erreur lors de la copie du lien');
     }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   const statCards = [
@@ -588,22 +597,24 @@ export default function VendorDashboard() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className="h-14 w-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-white text-xl font-bold shadow-lg border border-white/20">
-                  {user?.avatar ? (
-                    <img src={user.avatar} alt={user.name} className="h-full w-full rounded-xl object-cover" />
+                  {user?.shop?.logo || user?.avatar ? (
+                    <img src={user?.shop?.logo || user?.avatar || ''} alt={user?.shop?.name || user?.name} className="h-full w-full rounded-xl object-cover" />
                   ) : (
                     <Store className="h-7 w-7" />
                   )}
                 </div>
                 <div>
                   <h1 className="text-2xl sm:text-3xl font-bold">
-                    {greeting}, {user?.shop?.name || user?.name?.split(' ')[0] || 'Vendeur'} 👋
+                    {greeting}, {user?.shop?.name || user?.name || 'Vendeur'} 👋
                   </h1>
                   <p className="text-emerald-100 mt-1">
                     {user?.shop?.name ? `Bienvenue sur ${user.shop.name}` : 'Gérez votre boutique et vos commandes'}
                   </p>
                   <div className="flex items-center gap-2 mt-2">
                     <ExternalLink className="h-3 w-3 text-emerald-200/70" />
-                    <span className="text-emerald-200/80 text-xs font-mono">eco-rdc.vercel.app/shop/{user?.shop?.slug}</span>
+                    <span className="text-emerald-200/80 text-xs font-mono">
+                      {user?.shop?.slug ? `${typeof window !== 'undefined' ? window.location.host : ''}/shop/${user.shop.slug}` : 'Chargement...'}
+                    </span>
                   </div>
                 </div>
               </div>

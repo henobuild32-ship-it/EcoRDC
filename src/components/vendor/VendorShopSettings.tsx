@@ -46,6 +46,9 @@ import {
   User,
   Mail,
   Phone,
+  Copy,
+  Check,
+  Share2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -88,13 +91,20 @@ export default function VendorShopSettings() {
   const [category, setCategory] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
-  const [country, setCountry] = useState('RDC');
+  const [country, setCountry] = useState('RD Congo');
+  const [shopPhone, setShopPhone] = useState('');
+  const [shopEmail, setShopEmail] = useState('');
+  const [commune, setCommune] = useState('');
+  const [hours, setHours] = useState('');
+  const [socials, setSocials] = useState('');
+  const [currency, setCurrency] = useState('CDF');
   const [logo, setLogo] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [requestingBadge, setRequestingBadge] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   // Vendor personal info
   const [userName, setUserName] = useState('');
@@ -119,53 +129,59 @@ export default function VendorShopSettings() {
     }
   }, []);
 
+  const populateShopState = (s: Shop) => {
+    setShop(s);
+    setName(s.name || '');
+    setDescription(s.description || '');
+    setCategory(s.category || '');
+    setAddress(s.address || user?.address || '');
+    setCity(s.city || user?.city || '');
+    setCountry(s.country || 'RD Congo');
+    setLogo(s.logo || '');
+    setShopPhone(s.phone || user?.phone || '');
+    setShopEmail(s.email || user?.email || '');
+    setCommune(s.commune || '');
+    setHours(s.hours || '');
+    setSocials(s.socials || '');
+    setCurrency(s.currency || 'CDF');
+  };
+
   useEffect(() => {
     if (!token) return;
-    const myShop = user?.shop as Shop | null | undefined;
-    if (myShop) {
-      setShop(myShop);
-      setName(myShop.name);
-      setDescription(myShop.description || '');
-      setCategory((myShop as any).category || '');
-      setAddress((myShop as any).address || '');
-      setCity((myShop as any).city || '');
-      setCountry((myShop as any).country || 'RD Congo');
-      setLogo(myShop.logo || '');
-      setLoading(false);
-    } else {
-      // Fallback: fetch from API
-      const fetchShop = async () => {
-        try {
-          const res = await fetch('/api/shops', {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (res.ok) {
-            const data = await res.json();
-            const found = (data.shops || []).find(
-              (s: Shop) => s.ownerId === user?.id
-            );
-            if (found) {
-              setShop(found);
-              setName(found.name);
-              setDescription(found.description || '');
-              setCategory((found as any).category || '');
-              setAddress((found as any).address || '');
-              setCity((found as any).city || '');
-              setCountry((found as any).country || 'RD Congo');
-              setLogo(found.logo || '');
-            }
-          }
-        } catch {
-          // silently handle
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchShop();
-    }
-  }, [token, user]);
 
-  // Sync personal info when user data changes (after save)
+    const fetchShopData = async () => {
+      try {
+        const res = await fetch('/api/shops?myShop=true', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.shop) {
+            populateShopState(data.shop);
+            if (user) {
+              setUser({ ...user, shop: data.shop }, token);
+            }
+            return;
+          }
+        }
+      } catch {
+        // Fallback to user.shop from store
+      } finally {
+        setLoading(false);
+      }
+
+      if (user?.shop) {
+        populateShopState(user.shop as Shop);
+        setLoading(false);
+      } else {
+        setLoading(false);
+      }
+    };
+
+    fetchShopData();
+  }, [token, user?.id]);
+
+  // Sync personal info when user data changes
   useEffect(() => {
     if (user) {
       setUserName(user.name || '');
@@ -181,7 +197,6 @@ export default function VendorShopSettings() {
     if (!file) return;
     setUploadingLogo(true);
     try {
-      // uploadImage tries /api/upload first, then falls back to base64.
       const url = await uploadImage(file);
       setLogo(url);
       toast.success('Logo mis à jour');
@@ -193,12 +208,39 @@ export default function VendorShopSettings() {
     }
   };
 
+  const handleCopyLink = async () => {
+    const targetSlug = shop?.slug || user?.shop?.slug;
+    if (!targetSlug) {
+      toast.error('Aucun lien de boutique disponible');
+      return;
+    }
+    const url = `${window.location.origin}/shop/${targetSlug}`;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = url;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      setCopiedLink(true);
+      toast.success('✅ Lien copié avec succès');
+      setTimeout(() => setCopiedLink(false), 2000);
+    } catch {
+      toast.error('Erreur lors de la copie du lien');
+    }
+  };
+
   const handleSave = async () => {
     if (!token) {
       setMessage({ type: 'error', text: 'Vous devez être connecté' });
       return;
     }
-    // Use shop from state or fallback to user.shop from store
     const targetShop = shop || (user?.shop as Shop | undefined);
     if (!targetShop) {
       setMessage({ type: 'error', text: 'Aucune boutique trouvée' });
@@ -221,19 +263,30 @@ export default function VendorShopSettings() {
           address,
           city,
           country,
+          phone: shopPhone,
+          email: shopEmail,
+          commune,
+          hours,
+          socials,
+          currency,
         }),
       });
       if (res.ok) {
         const data = await res.json();
-        setShop(data.shop);
+        populateShopState(data.shop);
+        if (user) {
+          setUser({ ...user, shop: data.shop }, token);
+        }
         setMessage({ type: 'success', text: 'Boutique mise à jour avec succès' });
-        toast.success('Boutique mise à jour');
+        toast.success('✅ Boutique mise à jour avec succès');
       } else {
         const data = await res.json();
-        setMessage({ type: 'error', text: data.error || 'Erreur' });
+        setMessage({ type: 'error', text: data.error || 'Erreur lors de la mise à jour' });
+        toast.error(data.error || 'Erreur lors de la mise à jour');
       }
     } catch {
       setMessage({ type: 'error', text: 'Erreur de connexion' });
+      toast.error('Erreur de connexion');
     } finally {
       setSaving(false);
       setTimeout(() => setMessage(null), 3000);
@@ -430,19 +483,39 @@ export default function VendorShopSettings() {
       <motion.div variants={itemVariants}>
         <Card className="border-emerald-200 dark:border-emerald-800 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/30">
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center shrink-0">
-                <ExternalLink className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center shrink-0">
+                  <ExternalLink className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Lien de votre boutique</p>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 font-mono">
+                    {shop?.slug ? `${typeof window !== 'undefined' ? window.location.origin : ''}/shop/${shop.slug}` : 'Chargement...'}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    Redirige vers votre page boutique EcoRDC
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium">Lien de votre boutique</p>
-                <p className="text-xs text-emerald-600 dark:text-emerald-400 font-mono">
-                  {shopUrl ? `eco-rdc.vercel.app/shop/${shop?.slug}` : 'Chargement...'}
-                </p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">
-                  Redirige vers votre page boutique EcoRDC
-                </p>
-              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCopyLink}
+                className="bg-white dark:bg-gray-800 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100/50 shrink-0"
+              >
+                {copiedLink ? (
+                  <>
+                    <Check className="h-4 w-4 mr-1 text-emerald-600" />
+                    Copié !
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4 mr-1" />
+                    Copier le lien
+                  </>
+                )}
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -485,6 +558,36 @@ export default function VendorShopSettings() {
               </div>
             </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="shop-phone">Téléphone de la boutique</Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="shop-phone"
+                    value={shopPhone}
+                    onChange={(e) => setShopPhone(e.target.value)}
+                    placeholder="+243..."
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="shop-email">Email de la boutique</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="shop-email"
+                    type="email"
+                    value={shopEmail}
+                    onChange={(e) => setShopEmail(e.target.value)}
+                    placeholder="contact@boutique.com"
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="shop-description">Description</Label>
               <Textarea
@@ -496,11 +599,11 @@ export default function VendorShopSettings() {
               />
             </div>
 
-            {/* Address fields */}
+            {/* Address & Location */}
             <div className="space-y-4 pt-2 border-t">
               <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 <MapPin className="h-4 w-4" />
-                Adresse
+                Localisation
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2 sm:col-span-2">
@@ -528,6 +631,15 @@ export default function VendorShopSettings() {
                   </Select>
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor="shop-commune">Commune / Quartier</Label>
+                  <Input
+                    id="shop-commune"
+                    value={commune}
+                    onChange={(e) => setCommune(e.target.value)}
+                    placeholder="Ex: Gombe, Lingwala..."
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
                   <Label>Pays</Label>
                   <Select value={country} onValueChange={setCountry}>
                     <SelectTrigger>
@@ -537,6 +649,46 @@ export default function VendorShopSettings() {
                       <SelectItem value="RD Congo">RD Congo</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+              </div>
+            </div>
+
+            {/* Details & Socials */}
+            <div className="space-y-4 pt-2 border-t">
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <Clock className="h-4 w-4" />
+                Horaires & Devise
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="shop-hours">Horaires d&apos;ouverture</Label>
+                  <Input
+                    id="shop-hours"
+                    value={hours}
+                    onChange={(e) => setHours(e.target.value)}
+                    placeholder="Ex: Lun-Sam: 8h00 - 18h00"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Devise principale</Label>
+                  <Select value={currency} onValueChange={setCurrency}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CDF">Franc Congolais (CDF)</SelectItem>
+                      <SelectItem value="USD">Dollar Américain (USD)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="shop-socials">Réseaux sociaux / Liens</Label>
+                  <Input
+                    id="shop-socials"
+                    value={socials}
+                    onChange={(e) => setSocials(e.target.value)}
+                    placeholder="Ex: WhatsApp: +243..., Facebook: mypage"
+                  />
                 </div>
               </div>
             </div>

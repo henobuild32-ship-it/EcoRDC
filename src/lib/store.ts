@@ -75,6 +75,16 @@ export interface Shop {
   description?: string;
   logo?: string;
   coverImage?: string;
+  category?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  phone?: string;
+  email?: string;
+  commune?: string;
+  hours?: string;
+  socials?: string;
+  currency?: string;
   ownerId: string;
   isRecommended: boolean;
   recommendationStatus: string;

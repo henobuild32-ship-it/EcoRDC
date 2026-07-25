@@ -9,8 +9,10 @@ interface Props {
 export default async function ShopPage({ params }: Props) {
   const { slug } = await params;
 
-  const shop = await db.shop.findUnique({
-    where: { slug },
+  const shop = await db.shop.findFirst({
+    where: {
+      OR: [{ slug }, { id: slug }],
+    },
     include: {
       owner: { select: { id: true, name: true, email: true, phone: true } },
       products: {
@@ -21,8 +23,7 @@ export default async function ShopPage({ params }: Props) {
           name: true,
           description: true,
           price: true,
-          currency: true,
-          image: true,
+          images: true,
           category: true,
           isActive: true,
           createdAt: true,
@@ -36,5 +37,14 @@ export default async function ShopPage({ params }: Props) {
     notFound();
   }
 
-  return <PublicShopClient shop={JSON.parse(JSON.stringify(shop))} />;
+  const formattedShop = {
+    ...JSON.parse(JSON.stringify(shop)),
+    products: shop.products.map((p) => ({
+      ...p,
+      currency: (shop as any).currency || 'CDF',
+      image: p.images ? p.images.split(',')[0].trim() : null,
+    })),
+  };
+
+  return <PublicShopClient shop={formattedShop} />;
 }

@@ -10,13 +10,38 @@ export async function GET(request: NextRequest) {
     const city = searchParams.get('city');
     const category = searchParams.get('category');
     const recommended = searchParams.get('recommended');
+    const myShop = searchParams.get('myShop');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
 
+    // Get current user's shop
+    if (myShop === 'true') {
+      const token = request.headers.get('authorization')?.replace('Bearer ', '');
+      if (!token) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+      const payload = verifyToken(token);
+      if (!payload) return NextResponse.json({ error: 'Token invalide' }, { status: 401 });
+
+      const shop = await db.shop.findUnique({
+        where: { ownerId: payload.userId },
+        include: {
+          owner: { select: { id: true, name: true, email: true, phone: true } },
+          products: {
+            where: { isActive: true },
+            orderBy: { createdAt: 'desc' },
+          },
+          _count: { select: { products: true, followers: true } },
+        },
+      });
+      if (!shop) {
+        return NextResponse.json({ error: 'Boutique non trouvée' }, { status: 404 });
+      }
+      return NextResponse.json({ shop });
+    }
+
     // Get single shop by slug
     if (slug) {
-      const shop = await db.shop.findUnique({
-        where: { slug },
+      const shop = await db.shop.findFirst({
+        where: { OR: [{ slug }, { id: slug }] },
         include: {
           owner: { select: { id: true, name: true, email: true, phone: true } },
           products: {
@@ -152,7 +177,7 @@ export async function PUT(request: NextRequest) {
     if (!payload) return NextResponse.json({ error: 'Token invalide' }, { status: 401 });
 
     const body = await request.json();
-    const { shopId, name, description, logo, coverImage, category, address, city, country, recommendationRequest } = body;
+    const { shopId, name, description, logo, coverImage, category, address, city, country, phone, email, commune, hours, socials, currency, recommendationRequest } = body;
 
     const shop = await db.shop.findUnique({ where: { id: shopId } });
     if (!shop) return NextResponse.json({ error: 'Boutique non trouvée' }, { status: 404 });
@@ -181,6 +206,12 @@ export async function PUT(request: NextRequest) {
     if (address !== undefined) updateData.address = address;
     if (city !== undefined) updateData.city = city;
     if (country !== undefined) updateData.country = country;
+    if (phone !== undefined) updateData.phone = phone;
+    if (email !== undefined) updateData.email = email;
+    if (commune !== undefined) updateData.commune = commune;
+    if (hours !== undefined) updateData.hours = hours;
+    if (socials !== undefined) updateData.socials = socials;
+    if (currency !== undefined) updateData.currency = currency;
 
     if (recommendationRequest) {
       updateData.recommendationStatus = 'PENDING';
