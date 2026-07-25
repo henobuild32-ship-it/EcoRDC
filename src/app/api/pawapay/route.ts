@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
             amount: { amount, currency: 'CDF' },
             countryCode: 'COD',
             reason,
-            returnUrl: 'https://ecordc/payment-callback',
+            returnUrl: 'https://eco-rdc.vercel.app/payment-callback',
           }),
           signal: pawapayController.signal,
         });
