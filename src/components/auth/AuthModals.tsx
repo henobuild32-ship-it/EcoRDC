@@ -1146,17 +1146,6 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
                   {currentStep === 1 && (
                     /* ---- Step 1: Personal Info ---- */
                     <>
-                      {/* Avatar */}
-                      <div className="flex justify-center">
-                        <ImageUploadZone
-                          label="Photo de profil (optionnel)"
-                          imageUrl={avatar}
-                          onImageSet={setAvatar}
-                          onImageClear={() => setAvatar('')}
-                          size="lg"
-                        />
-                      </div>
-
                       {/* Name */}
                       <div className="space-y-2">
                         <Label htmlFor="reg-name" className="text-sm font-medium">
@@ -1392,29 +1381,20 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
                         </div>
                       </div>
 
-                      {/* Shop Name + Logo row */}
-                      <div className="flex gap-4 items-start">
-                        <ImageUploadZone
-                          label="Logo boutique"
-                          imageUrl={shopLogo}
-                          onImageSet={setShopLogo}
-                          onImageClear={() => setShopLogo('')}
-                          size="lg"
-                        />
-                        <div className="flex-1 space-y-2">
-                          <Label htmlFor="reg-shop-name" className="text-sm font-medium">
-                            Nom de la boutique <span className="text-red-500">*</span>
-                          </Label>
-                          <div className="relative">
-                            <Store className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                              id="reg-shop-name"
-                              placeholder="Ma Boutique"
-                              value={shopName}
-                              onChange={(e) => setShopName(e.target.value)}
-                              className="pl-10 h-10"
-                            />
-                          </div>
+                      {/* Shop Name */}
+                      <div className="space-y-2">
+                        <Label htmlFor="reg-shop-name" className="text-sm font-medium">
+                          Nom de la boutique <span className="text-red-500">*</span>
+                        </Label>
+                        <div className="relative">
+                          <Store className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="reg-shop-name"
+                            placeholder="Ma Boutique"
+                            value={shopName}
+                            onChange={(e) => setShopName(e.target.value)}
+                            className="pl-10 h-10"
+                          />
                         </div>
                       </div>
 
