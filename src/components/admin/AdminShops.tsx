@@ -71,21 +71,28 @@ export default function AdminShops() {
   const [editData, setEditData] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
   const fetchShops = useCallback(async () => {
     if (!token) return;
     try {
-      const res = await fetch('/api/admin?section=all-shops', {
+      const res = await fetch('/api/admin?section=all-shops&limit=5000', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
         const data = await res.json();
         setShops(data.shops || []);
+        setLastUpdated(new Date());
       }
     } catch { /* silently handle */ }
   }, [token]);
 
   useEffect(() => {
     fetchShops().then(() => setLoading(false));
+    const interval = setInterval(() => {
+      fetchShops();
+    }, 15000);
+    return () => clearInterval(interval);
   }, [fetchShops]);
 
   const categories = useMemo(() => {
@@ -246,7 +253,23 @@ export default function AdminShops() {
               <ShoppingBag className="h-6 w-6 text-blue-400" />
               Gestion des Boutiques
             </h1>
-            <p className="text-slate-400 text-sm mt-1">{shops.length} boutique(s) · {recommendedCount} recommandée(s)</p>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-slate-400 text-sm">
+                <strong className="text-white">{shops.length}</strong> boutique(s) · {recommendedCount} recommandée(s)
+              </p>
+              <div className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full text-xs font-medium">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span>En temps réel</span>
+                {lastUpdated && (
+                  <span className="text-[10px] text-emerald-300/70">
+                    • {lastUpdated.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 

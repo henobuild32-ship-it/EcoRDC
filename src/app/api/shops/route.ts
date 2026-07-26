@@ -33,6 +33,39 @@ export async function GET(request: NextRequest) {
         },
       });
       if (!shop) {
+        if (payload.role === 'VENDOR') {
+          const vendorUser = await db.user.findUnique({ where: { id: payload.userId } });
+          if (vendorUser) {
+            const shopName = `Boutique ${vendorUser.name}`;
+            let baseSlug = generateShopSlug(shopName);
+            let slug = baseSlug;
+            let suffix = 1;
+            while (suffix < 50) {
+              const existing = await db.shop.findUnique({ where: { slug } });
+              if (!existing) break;
+              slug = `${baseSlug}-${suffix}`;
+              suffix++;
+            }
+            const autoCreatedShop = await db.shop.create({
+              data: {
+                name: shopName,
+                slug,
+                ownerId: vendorUser.id,
+                email: vendorUser.email,
+                phone: vendorUser.phone,
+                city: vendorUser.city,
+                country: vendorUser.country || 'RD Congo',
+                isActive: true,
+              },
+              include: {
+                owner: { select: { id: true, name: true, email: true, phone: true } },
+                products: { where: { isActive: true } },
+                _count: { select: { products: true, followers: true } },
+              },
+            });
+            return NextResponse.json({ shop: autoCreatedShop });
+          }
+        }
         return NextResponse.json({ error: 'Boutique non trouvée' }, { status: 404 });
       }
       return NextResponse.json({ shop });

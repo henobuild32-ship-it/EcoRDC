@@ -31,6 +31,7 @@ import {
   Zap,
   RefreshCw,
   Crown,
+  Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -212,10 +213,12 @@ export default function VendorDashboard() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
+  const [platformVendors, setPlatformVendors] = useState<number | null>(null);
+  const [vendorsUpdatedAt, setVendorsUpdatedAt] = useState<Date | null>(null);
 
-  // If shop is missing from user object (e.g. right after registration), fetch it
+  // Ensure vendor shop is synced with store on mount
   useEffect(() => {
-    if (!token || user?.shop) return;
+    if (!token) return;
     fetch('/api/shops?myShop=true', { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((data) => {
@@ -224,7 +227,29 @@ export default function VendorDashboard() {
         }
       })
       .catch(() => {});
-  }, [token, user?.shop]);
+  }, [token]);
+
+  // Real-time vendor count — polling every 30s
+  useEffect(() => {
+    const fetchVendorCount = async () => {
+      try {
+        const res = await fetch('/api/shops?limit=1');
+        if (res.ok) {
+          const data = await res.json();
+          const total = data.pagination?.total ?? null;
+          if (total !== null) {
+            setPlatformVendors(total);
+            setVendorsUpdatedAt(new Date());
+          }
+        }
+      } catch {
+        // silent fail
+      }
+    };
+    fetchVendorCount();
+    const interval = setInterval(fetchVendorCount, 30_000);
+    return () => clearInterval(interval);
+  }, []);
 
   const fetchSubscription = useCallback(async () => {
     if (!token) return;
@@ -679,6 +704,54 @@ export default function VendorDashboard() {
             onClick={(v) => setCurrentView(v as any)}
           />
         ))}
+      </motion.div>
+
+      {/* Platform Vendor Count — Live */}
+      <motion.div variants={itemVariants}>
+        <Card className="border border-emerald-200 dark:border-emerald-800 bg-gradient-to-r from-emerald-50/80 to-teal-50/80 dark:from-emerald-950/20 dark:to-teal-950/20 overflow-hidden relative">
+          <div className="absolute inset-0 opacity-[0.04] pointer-events-none">
+            <div className="absolute top-3 right-6 grid grid-cols-6 gap-2">
+              {Array.from({ length: 18 }).map((_, i) => (
+                <div key={i} className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
+              ))}
+            </div>
+          </div>
+          <CardContent className="p-4 relative z-10">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-md shrink-0">
+                  <Users className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Vendeurs sur la plateforme</p>
+                  <div className="flex items-end gap-2 mt-0.5">
+                    {platformVendors === null ? (
+                      <div className="h-7 w-16 bg-emerald-200/50 dark:bg-emerald-900/30 animate-pulse rounded" />
+                    ) : (
+                      <span className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">
+                        {platformVendors.toLocaleString('fr-FR')}
+                      </span>
+                    )}
+                    <span className="text-sm text-muted-foreground mb-0.5">boutiques actives</span>
+                  </div>
+                  {vendorsUpdatedAt && (
+                    <p className="text-xs text-muted-foreground/70 mt-0.5">
+                      Mis à jour à {vendorsUpdatedAt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    </p>
+                  )}
+                </div>
+              </div>
+              {/* Live indicator */}
+              <div className="flex flex-col items-center gap-1 shrink-0">
+                <div className="relative flex items-center justify-center">
+                  <span className="absolute inline-flex h-3 w-3 rounded-full bg-emerald-400 opacity-75 animate-ping" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                </div>
+                <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">Live</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </motion.div>
 
       {/* Recommendation Badge Card */}

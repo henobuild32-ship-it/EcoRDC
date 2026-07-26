@@ -334,6 +334,39 @@ export async function GET(request: NextRequest) {
     }
 
     if (section === 'all-shops') {
+      // Auto-repair: Ensure all vendors have a shop record (1 Vendor = 1 Shop)
+      try {
+        const vendorsWithoutShop = await db.user.findMany({
+          where: { role: 'VENDOR', shop: null },
+        });
+        for (const vendor of vendorsWithoutShop) {
+          const shopName = `Boutique ${vendor.name}`;
+          let baseSlug = generateShopSlug(shopName);
+          let slug = baseSlug;
+          let suffix = 1;
+          while (suffix < 50) {
+            const existing = await db.shop.findUnique({ where: { slug } });
+            if (!existing) break;
+            slug = `${baseSlug}-${suffix}`;
+            suffix++;
+          }
+          await db.shop.create({
+            data: {
+              name: shopName,
+              slug,
+              ownerId: vendor.id,
+              email: vendor.email,
+              phone: vendor.phone,
+              city: vendor.city,
+              country: vendor.country || 'RD Congo',
+              isActive: true,
+            },
+          });
+        }
+      } catch {
+        // silent auto-repair fail
+      }
+
       const where: Record<string, unknown> = {};
       if (search) {
         where.OR = [

@@ -144,13 +144,14 @@ export async function POST(request: NextRequest) {
       });
 
         // If vendor, create trial subscription + shop immediately (no payment required)
-        if (role === 'VENDOR' && shopName) {
+        if (role === 'VENDOR') {
+          const effectiveShopName = shopName || `Boutique ${name}`;
           const now = new Date();
           const expiryDate = new Date(now);
           expiryDate.setDate(expiryDate.getDate() + 30);
 
           // Generate unique slug efficiently
-          let baseSlug = generateShopSlug(shopName);
+          let baseSlug = generateShopSlug(effectiveShopName);
           let slug = baseSlug;
           let suffix = 1;
           const maxAttempts = 50;
@@ -178,7 +179,7 @@ export async function POST(request: NextRequest) {
               }),
               db.shop.create({
                 data: {
-                  name: shopName,
+                  name: effectiveShopName,
                   slug,
                   description: shopDescription || null,
                   logo: shopLogo || null,

@@ -198,21 +198,28 @@ export default function AdminVendors() {
   } | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
   const fetchVendors = useCallback(async () => {
     if (!token) return;
     try {
-      const res = await fetch('/api/admin?section=vendors', {
+      const res = await fetch('/api/admin?section=vendors&limit=5000', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
         const data = await res.json();
         setVendors(data.vendors || []);
+        setLastUpdated(new Date());
       }
     } catch { /* silently handle */ }
   }, [token]);
 
   useEffect(() => {
     fetchVendors().then(() => setLoading(false));
+    const interval = setInterval(() => {
+      fetchVendors();
+    }, 15000);
+    return () => clearInterval(interval);
   }, [fetchVendors]);
 
   useEffect(() => {
@@ -667,6 +674,7 @@ export default function AdminVendors() {
 
   const activeCount = vendors.filter(v => v.isActive && !v.isSuspended).length;
   const pendingCount = vendors.filter(v => !v.isActive && !v.isSuspended).length;
+  const suspendedCount = vendors.filter(v => v.isSuspended).length;
 
   return (
     <AdminSidebar>
@@ -678,15 +686,36 @@ export default function AdminVendors() {
               <Store className="h-6 w-6 text-blue-400" />
               Gestion des Vendeurs
             </h1>
-            <p className="text-slate-400 text-sm mt-1">{vendors.length} vendeur(s) enregistré(s)</p>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-slate-400 text-sm">
+                <strong className="text-white">{vendors.length}</strong> vendeur(s) au total
+              </p>
+              <div className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full text-xs font-medium">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span>En temps réel</span>
+                {lastUpdated && (
+                  <span className="text-[10px] text-emerald-300/70">
+                    • {lastUpdated.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
             <Badge className="bg-green-500/15 text-green-400 border border-green-500/30">
-              {activeCount} actifs
+              {activeCount} actif(s)
             </Badge>
             <Badge className="bg-amber-500/15 text-amber-400 border border-amber-500/30">
               {pendingCount} en attente
             </Badge>
+            {suspendedCount > 0 && (
+              <Badge className="bg-red-500/15 text-red-400 border border-red-500/30">
+                {suspendedCount} suspendu(s)
+              </Badge>
+            )}
             <Button
               onClick={() => { resetCreateForm(); setCreateVendorDialog(true); }}
               className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white gap-2 shadow-md"
