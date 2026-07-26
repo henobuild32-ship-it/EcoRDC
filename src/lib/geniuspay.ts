@@ -246,10 +246,21 @@ export async function createGeniusPayCheckout(params: {
     };
   }
 
+  // GeniusPay API strictly accepts 'USD', 'XOF', 'EUR'.
+  // If input currency is CDF (Congolese Franc), map it to GENIUSPAY_CURRENCY (default USD)
+  // and set an appropriate API amount (e.g. 4 USD for 10,000 FC).
+  const apiCurrency = (process.env.GENIUSPAY_CURRENCY || (currency === 'CDF' ? 'USD' : currency)).toUpperCase();
+  let apiAmount = amount;
+  if (currency === 'CDF' && apiCurrency === 'USD') {
+    apiAmount = parseFloat(process.env.GENIUSPAY_USD_AMOUNT || '4');
+  } else if (currency === 'CDF' && apiCurrency === 'XOF') {
+    apiAmount = parseFloat(process.env.GENIUSPAY_XOF_AMOUNT || '2500');
+  }
+
   // Build the GeniusPay API payload per docs
   const payload: Record<string, unknown> = {
-    amount,
-    currency: currency || 'CDF',
+    amount: apiAmount,
+    currency: apiCurrency,
     description,
     customer: {
       name: customerName,
@@ -262,6 +273,8 @@ export async function createGeniusPayCheckout(params: {
       platform: 'EcoRDC',
       environment: GENIUSPAY_ENV,
       reference,
+      originalAmount: amount,
+      originalCurrency: currency,
     },
   };
 
@@ -372,7 +385,8 @@ export async function checkGeniusPayStatus(transactionId: string): Promise<{
     const data = await response.json().catch(() => ({}));
 
     if (response.ok) {
-      const rawStatus = (data.status || data.state || '').toString().toUpperCase();
+      const tx = data.data || data;
+      const rawStatus = (tx.status || tx.state || '').toString().toUpperCase();
       let status: 'pending' | 'success' | 'failed' = 'pending';
 
       if (['COMPLETED', 'SUCCESS', 'PAID', 'CONFIRMED', 'APPROVED'].includes(rawStatus)) {
