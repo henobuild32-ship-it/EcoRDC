@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
     const currency = 'CDF';
     const reason = type === 'REGISTRATION'
       ? 'EcoRDC - Inscription Vendeur'
-      : 'EcoRDC - Abonnement Mensuel (30 jours)';
+      : 'EcoRDC - Abonnement Mensuel (31 jours)';
 
     // Get or create subscription record
     let subscription = await db.subscription.findUnique({ where: { vendorId: vendor.id } });

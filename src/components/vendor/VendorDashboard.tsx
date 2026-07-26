@@ -298,7 +298,7 @@ export default function VendorDashboard() {
   }, []);
 
   const handleCopyLink = async () => {
-    const slug = user?.shop?.slug;
+    const slug = user?.shop?.slug || user?.shop?.id;
     if (!slug) {
       toast.error('Aucun lien de boutique disponible');
       return;
@@ -318,7 +318,7 @@ export default function VendorDashboard() {
         document.body.removeChild(textarea);
       }
       setCopied(true);
-      toast.success('✅ Lien copié avec succès');
+      toast.success('Lien de la boutique copié !');
       setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error('Erreur lors de la copie du lien');

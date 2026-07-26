@@ -726,30 +726,40 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
     setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleRegister = async () => {
+    if (isSubmitting) return;
     if (!validateStep(currentStep)) return;
 
-    // For vendors on the last step, submit registration directly (no payment)
-    if (role === 'VENDOR' && currentStep === totalSteps) {
-      await handleVendorRegister();
-      return;
-    }
+    setIsSubmitting(true);
+    setLoading(true);
 
-    // For clients, register directly
-    if (role === 'CLIENT') {
-      await handleClientRegister();
+    try {
+      // For vendors on the last step, submit registration directly (no payment)
+      if (role === 'VENDOR' && currentStep === totalSteps) {
+        await handleVendorRegister();
+        return;
+      }
+
+      // For clients, register directly
+      if (role === 'CLIENT') {
+        await handleClientRegister();
+      }
+    } finally {
+      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
   const handleClientRegister = async () => {
-    setLoading(true);
     try {
       const res = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'register',
-          email: email.trim(),
+          email: email.trim().toLowerCase(),
           password,
           name: name.trim(),
           avatar: avatar || undefined,
@@ -774,13 +784,10 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
       resetForm();
     } catch {
       setError('Erreur de connexion au serveur. Veuillez réessayer.');
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleVendorRegister = async () => {
-    setLoading(true);
     setError('');
     try {
       const res = await fetch('/api/auth', {
@@ -788,7 +795,7 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'register',
-          email: email.trim(),
+          email: email.trim().toLowerCase(),
           password,
           name: name.trim(),
           phone: phone.trim() || undefined,
@@ -819,8 +826,6 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
       resetForm();
     } catch {
       setError('Erreur de connexion au serveur. Veuillez réessayer.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -988,6 +993,7 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
     setShopCountry('RD Congo');
     setError('');
     setLoading(false);
+    setIsSubmitting(false);
     setRegistrationSuccess(false);
     setPaymentLoading(false);
     setPaymentCompleted(false);

@@ -175,7 +175,7 @@ function relativeTime(dateStr: string): string {
 }
 
 export default function AppHeader() {
-  const { currentView, setCurrentView, user, logout, incrementLogoTap, token } = useAppStore();
+  const { currentView, setCurrentView, user, logout, incrementLogoTap, token, setSelectedShop, setSelectedProduct } = useAppStore();
   const [notificationCount, setNotificationCount] = useState(0);
   const [prevNotificationCount, setPrevNotificationCount] = useState(0);
   const [notifications, setNotifications] = useState<Array<{
@@ -322,11 +322,13 @@ export default function AppHeader() {
     }
   };
 
-  const handleSearchResultClick = (result: { id: string; name: string; type: 'shop' | 'product' }) => {
+  const handleSearchResultClick = (result: { id: string; name: string; type: 'shop' | 'product'; subtitle?: string }) => {
     setSearchOpen(false);
     setSearchQuery('');
     if (result.type === 'shop') {
-      setCurrentView('client-shop');
+      // Set the shop as selected using its slug so ClientShopView can fetch full details
+      setSelectedShop({ id: result.id, name: result.name, slug: result.subtitle || result.id } as any);
+      setCurrentView('client-product');
     } else {
       setCurrentView('client-shop');
     }

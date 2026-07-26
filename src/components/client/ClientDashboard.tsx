@@ -148,7 +148,11 @@ export default function ClientDashboard() {
         }
         if (shopsRes.ok) {
           const data = await shopsRes.json();
-          const rec = (data.shops || []).filter((s: Shop) => s.isRecommended).slice(0, 8);
+          const allShops: Shop[] = data.shops || [];
+          let rec = allShops.filter((s: Shop) => s.isRecommended).slice(0, 8);
+          if (rec.length === 0) {
+            rec = allShops.slice(0, 8);
+          }
           setRecommendedShops(rec);
         }
       } catch {

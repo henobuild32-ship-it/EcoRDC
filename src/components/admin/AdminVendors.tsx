@@ -40,6 +40,7 @@ import {
   CreditCard, Activity, Wallet, MapPin, Ban, RotateCcw, AlertTriangle,
   UserPlus, KeyRound, Copy, EyeOff, RefreshCw, Image as ImageIcon, CheckCircle2, Info,
   PlusCircle,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -298,11 +299,34 @@ export default function AdminVendors() {
 
   // Copy helper for the success dialog
   const copyToClipboard = (text: string, field: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopiedField(field);
-      toast.success('Copié dans le presse-papiers');
-      setTimeout(() => setCopiedField(null), 2000);
-    });
+    const fallbackCopy = () => {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        setCopiedField(field);
+        toast.success('Copié dans le presse-papiers');
+        setTimeout(() => setCopiedField(null), 2000);
+      } catch {
+        toast.error('Impossible de copier');
+      }
+      document.body.removeChild(textarea);
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(() => {
+        setCopiedField(field);
+        toast.success('Copié dans le presse-papiers');
+        setTimeout(() => setCopiedField(null), 2000);
+      }).catch(() => {
+        fallbackCopy();
+      });
+    } else {
+      fallbackCopy();
+    }
   };
 
   // Reset the create-vendor form to its initial state

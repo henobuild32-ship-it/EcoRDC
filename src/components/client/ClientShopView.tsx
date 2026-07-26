@@ -23,6 +23,7 @@ import {
   Link2,
   Phone,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -41,20 +42,20 @@ export default function ClientShopView() {
   const { selectedShop, token, setCurrentView, setSelectedShop, setChatPartner } = useAppStore();
   const [shop, setShop] = useState<Shop | null>(selectedShop);
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(!selectedShop?.products);
+  const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [favoriteLoading, setFavoriteLoading] = useState<string | null>(null);
-  const [shareNotification, setShareNotification] = useState(false);
 
   useEffect(() => {
-    if (!selectedShop?.slug) return;
+    if (!selectedShop?.slug && !selectedShop?.id) return;
+    const targetSlug = selectedShop.slug || selectedShop.id;
 
     const fetchShop = async () => {
       try {
-        const res = await fetch(`/api/shops?slug=${selectedShop.slug}`);
+        const res = await fetch(`/api/shops?slug=${targetSlug}`);
         if (res.ok) {
           const data = await res.json();
           setShop(data.shop);
@@ -67,12 +68,7 @@ export default function ClientShopView() {
       }
     };
 
-    if (!selectedShop.products || selectedShop.products.length === 0) {
-      fetchShop();
-    } else {
-      setProducts(selectedShop.products);
-      setLoading(false);
-    }
+    fetchShop();
   }, [selectedShop]);
 
   const fetchFollowAndFavorites = useCallback(async () => {
@@ -207,14 +203,39 @@ export default function ClientShopView() {
   };
 
   const handleShare = () => {
-    const shopUrl = `${window.location.origin}/shop/${shop?.slug}`;
+    const shopUrl = `${window.location.origin}/shop/${shop?.slug || ''}`;
     const shareText = `Découvrez ${shop?.name} sur EcoRDC ! ${shopUrl}`;
+
+    const copySuccess = () => {
+      toast.success('Lien copié dans le presse-papiers');
+    };
+
+    const fallbackCopy = (text: string) => {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        copySuccess();
+      } catch {
+        toast.error('Impossible de copier le lien');
+      }
+      document.body.removeChild(textarea);
+    };
+
     if (navigator.share) {
       navigator.share({ title: shop?.name, text: shareText, url: shopUrl }).catch(() => {});
+    } else if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(shopUrl).then(() => {
+        copySuccess();
+      }).catch(() => {
+        fallbackCopy(shopUrl);
+      });
     } else {
-      navigator.clipboard?.writeText(shopUrl);
-      setShareNotification(true);
-      setTimeout(() => setShareNotification(false), 2000);
+      fallbackCopy(shopUrl);
     }
   };
 
@@ -365,12 +386,6 @@ export default function ClientShopView() {
             </div>
           </CardContent>
 
-          {/* Share notification toast */}
-          {shareNotification && (
-            <div className="absolute top-4 right-4 bg-emerald-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm z-50 animate-pulse">
-              Lien copié !
-            </div>
-          )}
         </Card>
       </motion.div>
 

@@ -103,16 +103,23 @@ export async function GET(request: NextRequest) {
       take: limit,
     });
 
-    return NextResponse.json({
-      shops,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages,
-        hasMore: page < totalPages,
+    return NextResponse.json(
+      {
+        shops,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+          hasMore: page < totalPages,
+        },
       },
-    });
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=59',
+        },
+      }
+    );
   } catch (error) {
     console.error('Shops GET error:', error);
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });

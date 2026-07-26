@@ -37,6 +37,9 @@ model User {
   payments         Payment[]
   reportedBy       Report[]        @relation("ReportReporter")
   resolvedReports  Report[]        @relation("ReportResolver")
+
+  @@index([role])
+  @@index([isActive])
 }
 
 model Shop {
@@ -77,6 +80,11 @@ model Shop {
   orders     Order[]
   promotions Promotion[]
   followers  FollowedShop[]
+
+  @@index([isActive])
+  @@index([isRecommended])
+  @@index([category])
+  @@index([city])
 }
 
 model Product {
@@ -96,6 +104,10 @@ model Product {
   orderItems OrderItem[]
   cartItems  CartItem[]
   favorites  Favorite[]
+
+  @@index([shopId])
+  @@index([isActive])
+  @@index([category])
 }
 
 model Order {
@@ -113,6 +125,10 @@ model Order {
   shop     Shop        @relation(fields: [shopId], references: [id])
   items    OrderItem[]
   invoice  Invoice?
+
+  @@index([customerId])
+  @@index([shopId])
+  @@index([status])
 }
 
 model OrderItem {
@@ -147,6 +163,9 @@ model Message {
 
   sender   User @relation("SentMessages", fields: [senderId], references: [id])
   receiver User @relation("ReceivedMessages", fields: [receiverId], references: [id])
+
+  @@index([senderId])
+  @@index([receiverId])
 }
 
 model Notification {
@@ -159,6 +178,9 @@ model Notification {
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
 }
 
 model Invoice {

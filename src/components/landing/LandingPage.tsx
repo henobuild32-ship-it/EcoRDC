@@ -135,6 +135,7 @@ function PlatformStats() {
 
 // Popular Shops Section
 function PopularShops() {
+  const { setCurrentView, setSelectedShop } = useAppStore();
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -142,10 +143,20 @@ function PopularShops() {
     async function fetchShops() {
       try {
         const res = await fetch('/api/shops?recommended=true');
+        let list: Shop[] = [];
         if (res.ok) {
           const data = await res.json();
-          setShops(data.shops || []);
+          list = data.shops || [];
         }
+        // Fallback: if no recommended shops, fetch all active shops so users always see shops
+        if (list.length === 0) {
+          const allRes = await fetch('/api/shops');
+          if (allRes.ok) {
+            const allData = await allRes.json();
+            list = allData.shops || [];
+          }
+        }
+        setShops(list);
       } catch {
         // Silently handle
       } finally {
@@ -175,7 +186,7 @@ function PopularShops() {
     return (
       <div className="text-center py-12">
         <Store className="h-16 w-16 mx-auto text-emerald-300 mb-4" />
-        <p className="text-muted-foreground text-lg">Les boutiques populaires apparaîtront bientôt</p>
+        <p className="text-muted-foreground text-lg">Aucune boutique disponible pour le moment</p>
       </div>
     );
   }
@@ -185,11 +196,21 @@ function PopularShops() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {shops.slice(0, 6).map((shop, index) => (
           <motion.div key={shop.id} variants={scaleIn} custom={index}>
-            <Card className="group card-hover hover:shadow-lg transition-all duration-300 border-emerald-100 dark:border-emerald-900/30 hover:border-emerald-300 dark:hover:border-emerald-700 cursor-pointer overflow-hidden">
+            <Card
+              className="group card-hover hover:shadow-lg transition-all duration-300 border-emerald-100 dark:border-emerald-900/30 hover:border-emerald-300 dark:hover:border-emerald-700 cursor-pointer overflow-hidden"
+              onClick={() => {
+                setSelectedShop(shop);
+                setCurrentView('client-product');
+              }}
+            >
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
-                  <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white font-bold text-lg shrink-0 shadow-md">
-                    {shop.name.charAt(0).toUpperCase()}
+                  <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white font-bold text-lg shrink-0 shadow-md overflow-hidden">
+                    {shop.logo ? (
+                      <img src={shop.logo} alt={shop.name} className="w-full h-full object-cover" />
+                    ) : (
+                      shop.name.charAt(0).toUpperCase()
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-lg truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
@@ -203,7 +224,7 @@ function PopularShops() {
                 <div className="flex items-center gap-3 mt-4 flex-wrap">
                   <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 border-0">
                     <Package className="size-3 mr-1" />
-                    {shop.products?.length || 0} produits
+                    {shop.products?.length || 0} produit{(shop.products?.length || 0) !== 1 ? 's' : ''}
                   </Badge>
                   {shop.city && (
                     <Badge variant="secondary" className="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-0">
@@ -227,6 +248,7 @@ function PopularShops() {
         <Button
           variant="outline"
           size="lg"
+          onClick={() => setCurrentView('client-shop')}
           className="border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 h-12 px-8"
         >
           Voir toutes les boutiques

@@ -141,13 +141,34 @@ export default function AdminPasswordResets() {
   };
 
   const handleCopyPassword = async () => {
-    try {
-      await navigator.clipboard.writeText(generatedPassword);
-      setCopied(true);
-      toast.success('Mot de passe copié');
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error('Impossible de copier');
+    const fallbackCopy = () => {
+      const textarea = document.createElement('textarea');
+      textarea.value = generatedPassword;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        setCopied(true);
+        toast.success('Mot de passe copié');
+        setTimeout(() => setCopied(false), 2000);
+      } catch {
+        toast.error('Impossible de copier');
+      }
+      document.body.removeChild(textarea);
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(generatedPassword);
+        setCopied(true);
+        toast.success('Mot de passe copié');
+        setTimeout(() => setCopied(false), 2000);
+      } catch {
+        fallbackCopy();
+      }
+    } else {
+      fallbackCopy();
     }
   };
 
