@@ -76,34 +76,8 @@ function AnimatedSection({ children, className = '', id = '' }: { children: Reac
   );
 }
 
-// Platform Stats - Real data from API
+// Platform Stats
 function PlatformStats() {
-  const [stats, setStats] = useState({ shops: 0, products: 0, clients: 0 });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchStats() {
-      try {
-        const [shopsRes, productsRes] = await Promise.all([
-          fetch('/api/shops'),
-          fetch('/api/products'),
-        ]);
-        const shopsData = shopsRes.ok ? await shopsRes.json() : { shops: [] };
-        const productsData = productsRes.ok ? await productsRes.json() : { products: [] };
-        setStats({
-          shops: shopsData.shops?.length || 0,
-          products: productsData.products?.length || 0,
-          clients: 0,
-        });
-      } catch {
-        // Silently handle
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchStats();
-  }, []);
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -113,21 +87,21 @@ function PlatformStats() {
     >
       <div className="text-center">
         <div className="text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400">
-          {loading ? '...' : stats.shops}
+          +100K
         </div>
-        <div className="text-sm text-muted-foreground">Boutiques</div>
+        <div className="text-sm font-medium text-muted-foreground mt-1">Boutiques</div>
       </div>
       <div className="text-center">
         <div className="text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400">
-          {loading ? '...' : stats.products}
+          +10K
         </div>
-        <div className="text-sm text-muted-foreground">Produits</div>
+        <div className="text-sm font-medium text-muted-foreground mt-1">Produits</div>
       </div>
       <div className="text-center">
         <div className="text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400">
-          {loading ? '...' : stats.clients}
+          +20K
         </div>
-        <div className="text-sm text-muted-foreground">Clients</div>
+        <div className="text-sm font-medium text-muted-foreground mt-1">Clients</div>
       </div>
     </motion.div>
   );
