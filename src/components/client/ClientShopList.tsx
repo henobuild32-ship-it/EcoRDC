@@ -59,6 +59,7 @@ export default function ClientShopList() {
       try {
         const params = new URLSearchParams();
         if (search) params.set('search', search);
+        params.set('client', 'true');
         const res = await fetch(`/api/shops?${params.toString()}`);
         if (res.ok) {
           const data = await res.json();

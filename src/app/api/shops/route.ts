@@ -94,18 +94,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ shop });
     }
 
-    // Build filter conditions
-    const where: Record<string, unknown> = { isActive: true };
+    // Build filter conditions — include all shops (active and inactive) so admin sees everything
+    const where: Record<string, unknown> = {};
+
+    // Only apply isActive filter when NOT fetching for admin context
+    const forClient = searchParams.get('client') === 'true' || recommended === 'true';
+    if (forClient) {
+      where.isActive = true;
+    }
 
     if (search) {
       where.OR = [
-        { name: { contains: search } },
-        { description: { contains: search } },
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { city: { contains: search, mode: 'insensitive' } },
       ];
     }
 
     if (city) {
-      where.city = city;
+      where.city = { contains: city, mode: 'insensitive' };
     }
 
     if (category) {

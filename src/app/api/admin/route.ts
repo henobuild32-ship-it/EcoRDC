@@ -173,10 +173,16 @@ export async function GET(request: NextRequest) {
       const where: Record<string, unknown> = { role: 'VENDOR' };
       if (search) {
         where.OR = [
-          { name: { contains: search } },
-          { email: { contains: search } },
+          { name: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } },
         ];
       }
+
+      // Determine pagination: if caller requests limit=5000 (admin UI), return all
+      const requestedLimit = parseInt(searchParams.get('limit') || '20');
+      const requestedPage = parseInt(searchParams.get('page') || '1');
+      const isUnlimited = requestedLimit >= 1000;
+
       const vendors = await db.user.findMany({
         where,
         include: {
@@ -198,11 +204,10 @@ export async function GET(request: NextRequest) {
           },
         },
         orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
+        ...(isUnlimited ? {} : { skip: (requestedPage - 1) * requestedLimit, take: requestedLimit }),
       });
       const total = await db.user.count({ where });
-      return NextResponse.json({ vendors, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });
+      return NextResponse.json({ vendors, pagination: { page: requestedPage, limit: requestedLimit, total, totalPages: Math.ceil(total / requestedLimit) } });
     }
 
     if (section === 'vendor-details') {
@@ -334,45 +339,49 @@ export async function GET(request: NextRequest) {
     }
 
     if (section === 'all-shops') {
-      // Auto-repair: Ensure all vendors have a shop record (1 Vendor = 1 Shop)
-      try {
-        const vendorsWithoutShop = await db.user.findMany({
-          where: { role: 'VENDOR', shop: null },
-        });
+      // Determine pagination: if caller requests limit=5000 (admin UI), return all
+      const requestedLimit = parseInt(searchParams.get('limit') || '20');
+      const requestedPage = parseInt(searchParams.get('page') || '1');
+      const isUnlimited = requestedLimit >= 1000;
+
+      // Fire-and-forget auto-repair: ensure all vendors have a shop (do NOT await, non-blocking)
+      db.user.findMany({
+        where: {
+          role: 'VENDOR',
+          shop: { is: null },
+        },
+        select: { id: true, name: true, email: true, phone: true, city: true, country: true },
+      }).then(async (vendorsWithoutShop) => {
         for (const vendor of vendorsWithoutShop) {
-          const shopName = `Boutique ${vendor.name}`;
-          let baseSlug = generateShopSlug(shopName);
-          let slug = baseSlug;
-          let suffix = 1;
-          while (suffix < 50) {
-            const existing = await db.shop.findUnique({ where: { slug } });
-            if (!existing) break;
-            slug = `${baseSlug}-${suffix}`;
-            suffix++;
-          }
-          await db.shop.create({
-            data: {
-              name: shopName,
-              slug,
-              ownerId: vendor.id,
-              email: vendor.email,
-              phone: vendor.phone,
-              city: vendor.city,
-              country: vendor.country || 'RD Congo',
-              isActive: true,
-            },
-          });
+          try {
+            const shopName = `Boutique ${vendor.name}`;
+            let baseSlug = generateShopSlug(shopName);
+            let slug = baseSlug;
+            let suffix = 1;
+            while (suffix < 50) {
+              const existing = await db.shop.findUnique({ where: { slug } });
+              if (!existing) break;
+              slug = `${baseSlug}-${suffix}`;
+              suffix++;
+            }
+            await db.shop.create({
+              data: {
+                name: shopName, slug, ownerId: vendor.id,
+                email: vendor.email, phone: vendor.phone,
+                city: vendor.city, country: vendor.country || 'RD Congo', isActive: true,
+              },
+            });
+          } catch { /* skip if already exists */ }
         }
-      } catch {
-        // silent auto-repair fail
-      }
+      }).catch(() => { /* silent */ });
 
       const where: Record<string, unknown> = {};
       if (search) {
         where.OR = [
-          { name: { contains: search } },
-          { category: { contains: search } },
-          { city: { contains: search } },
+          { name: { contains: search, mode: 'insensitive' } },
+          { category: { contains: search, mode: 'insensitive' } },
+          { city: { contains: search, mode: 'insensitive' } },
+          { owner: { name: { contains: search, mode: 'insensitive' } } },
         ];
       }
       const shops = await db.shop.findMany({
@@ -383,11 +392,10 @@ export async function GET(request: NextRequest) {
           _count: { select: { products: true, followers: true } },
         },
         orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
+        ...(isUnlimited ? {} : { skip: (requestedPage - 1) * requestedLimit, take: requestedLimit }),
       });
       const total = await db.shop.count({ where });
-      return NextResponse.json({ shops, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });
+      return NextResponse.json({ shops, pagination: { page: requestedPage, limit: requestedLimit, total, totalPages: Math.ceil(total / requestedLimit) } });
     }
 
     if (section === 'all-orders') {

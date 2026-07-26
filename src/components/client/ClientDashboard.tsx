@@ -118,7 +118,7 @@ export default function ClientDashboard() {
           fetch('/api/cart', { headers }),
           fetch('/api/favorites', { headers }),
           fetch('/api/followed-shops', { headers }),
-          fetch('/api/shops'),
+          fetch('/api/shops?client=true'),
         ]);
 
         if (ordersRes.ok) {
