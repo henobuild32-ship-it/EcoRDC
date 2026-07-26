@@ -296,11 +296,11 @@ export async function createGeniusPayCheckout(params: {
     const data = await response.json().catch(() => ({}));
     console.log('[GENIUSPAY] API response:', response.status, JSON.stringify(data).substring(0, 500));
 
-    if (response.ok && (data.checkout_url || data.checkoutUrl || data.payment_url || data.url)) {
-      const checkoutUrl = data.checkout_url || data.checkoutUrl || data.payment_url || data.url;
+    const rawUrl = data.checkout_url || data.checkoutUrl || data.payment_url || data.url || data.data?.checkout_url || data.data?.url || data.data?.payment_url;
+    if (response.ok && rawUrl) {
       return {
-        checkoutUrl,
-        transactionId: data.reference || data.id || reference,
+        checkoutUrl: rawUrl,
+        transactionId: data.reference || data.id || data.data?.reference || data.data?.id || reference,
         success: true,
         sandbox: false,
         rawResponse: data,

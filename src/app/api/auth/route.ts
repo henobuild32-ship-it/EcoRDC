@@ -312,7 +312,7 @@ export async function POST(request: NextRequest) {
       // Check subscription expiry for vendors
       if (user.role === 'VENDOR') {
         const subscription = await db.subscription.findUnique({ where: { vendorId: user.id } });
-        if (subscription && subscription.status === 'ACTIVE' && subscription.expiryDate && subscription.expiryDate < new Date()) {
+        if (subscription && (subscription.status === 'ACTIVE' || subscription.status === 'TRIAL') && subscription.expiryDate && subscription.expiryDate < new Date()) {
           // Expire subscription and suspend vendor
           await db.subscription.update({
             where: { id: subscription.id },
