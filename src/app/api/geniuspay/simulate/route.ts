@@ -89,8 +89,10 @@ export async function POST(request: NextRequest) {
           userId: payment.vendorId,
           title: 'Paiement confirmé (Sandbox)',
           message: payment.type === 'REGISTRATION'
-            ? 'Votre frais d\'inscription a été payé avec succès ! Votre boutique est maintenant active pour 30 jours.'
-            : 'Votre abonnement mensuel a été activé avec succès pour 30 jours !',
+            ? 'Votre frais d\'inscription a été payé avec succès ! Votre boutique est maintenant active pour 31 jours.'
+            : payment.type === 'PREPAID'
+              ? 'Votre abonnement du mois suivant a été payé en avance avec succès ! Il s\'activera automatiquement à l\'expiration de votre abonnement actuel.'
+              : 'Votre abonnement mensuel a été activé avec succès pour 31 jours !',
           type: 'SYSTEM',
         },
       });

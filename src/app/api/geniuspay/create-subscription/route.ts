@@ -49,9 +49,9 @@ export async function POST(request: NextRequest) {
     const authToken = request.headers.get('authorization')?.replace('Bearer ', '') || '';
 
     // Validate payment type
-    if (!type || !['REGISTRATION', 'SUBSCRIPTION'].includes(type)) {
+    if (!type || !['REGISTRATION', 'SUBSCRIPTION', 'PREPAID'].includes(type)) {
       return NextResponse.json(
-        { error: 'Type de paiement invalide. Utilisez REGISTRATION ou SUBSCRIPTION.' },
+        { error: 'Type de paiement invalide. Utilisez REGISTRATION, SUBSCRIPTION ou PREPAID.' },
         { status: 400 }
       );
     }
@@ -111,7 +111,9 @@ export async function POST(request: NextRequest) {
     const currency = 'CDF';
     const reason = type === 'REGISTRATION'
       ? 'EcoRDC - Inscription Vendeur'
-      : 'EcoRDC - Abonnement Mensuel (31 jours)';
+      : type === 'PREPAID'
+        ? 'EcoRDC - Abonnement Mensuel en avance (31 jours)'
+        : 'EcoRDC - Abonnement Mensuel (31 jours)';
 
     // Get or create subscription record
     let subscription = await db.subscription.findUnique({ where: { vendorId: vendor.id } });
@@ -183,6 +185,7 @@ export async function POST(request: NextRequest) {
           sandbox: checkout.sandbox,
           checkoutUrl: checkout.checkoutUrl,
           platform: 'geniuspay',
+          prepaid: type === 'PREPAID',
         }),
       },
     });

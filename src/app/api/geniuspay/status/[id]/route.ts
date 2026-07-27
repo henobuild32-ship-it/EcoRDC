@@ -98,6 +98,18 @@ export async function GET(
 
     // Query GeniusPay for the real status
     const geniuspayTransactionId = metadata.geniuspayTransactionId || payment.transactionRef;
+    if (!geniuspayTransactionId) {
+      return NextResponse.json({
+        status: 'pending',
+        paymentId: payment.id,
+        reference: payment.transactionRef,
+        amount: payment.amount,
+        currency: payment.currency,
+        type: payment.type,
+        message: 'R?f?rence GeniusPay manquante pour cette transaction.',
+      });
+    }
+
     const statusResult = await checkGeniusPayStatus(geniuspayTransactionId);
 
     // Update payment based on GeniusPay response
@@ -129,7 +141,9 @@ export async function GET(
           title: 'Paiement confirmé',
           message: payment.type === 'REGISTRATION'
             ? 'Votre frais d\'inscription a été payé avec succès ! Votre boutique est maintenant active.'
-            : 'Votre abonnement mensuel a été activé avec succès pour 30 jours.',
+            : payment.type === 'PREPAID'
+              ? 'Votre abonnement du mois suivant a été payé en avance avec succès ! Il s\'activera automatiquement à l\'expiration de votre abonnement actuel.'
+              : 'Votre abonnement mensuel a été activé avec succès pour 31 jours.',
           type: 'SYSTEM',
         },
       });

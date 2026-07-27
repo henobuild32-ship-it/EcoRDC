@@ -272,15 +272,16 @@ model Promotion {
 // Account suspended automatically if subscription expires
 
 model Subscription {
-  id         String    @id @default(cuid())
-  vendorId   String    @unique // One subscription per vendor
-  status     String    @default("INACTIVE") // INACTIVE, ACTIVE, EXPIRED, TRIAL
-  startDate  DateTime?
-  expiryDate DateTime?
-  amount     Float     @default(10000) // Monthly subscription amount in FC
-  freeMonths Int       @default(0) // Free months granted by admin
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id                String    @id @default(cuid())
+  vendorId          String    @unique // One subscription per vendor
+  status            String    @default("INACTIVE") // INACTIVE, ACTIVE, EXPIRED, TRIAL
+  startDate         DateTime?
+  expiryDate        DateTime?
+  prepaidExpiryDate DateTime? // Date d'expiration de l'abonnement prépayé (payé en avance)
+  amount            Float     @default(10000) // Monthly subscription amount in FC
+  freeMonths        Int       @default(0) // Free months granted by admin
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   vendor   User      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   payments Payment[]
@@ -291,7 +292,7 @@ model Payment {
   vendorId       String
   amount         Float
   currency       String   @default("CDF") // CDF (Congolese Francs)
-  type           String   @default("SUBSCRIPTION") // REGISTRATION, SUBSCRIPTION, RENEWAL
+  type           String   @default("SUBSCRIPTION") // REGISTRATION, SUBSCRIPTION, RENEWAL, PREPAID
   status         String   @default("PENDING") // PENDING, COMPLETED, FAILED, CANCELLED
   paymentMethod  String   @default("PAWAPAY") // PAWAPAY, MANUAL, ADMIN_GRANT
   transactionRef String? // PawaPay depositId or reference

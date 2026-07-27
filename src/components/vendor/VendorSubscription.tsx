@@ -78,6 +78,8 @@ interface SubscriptionData {
   status: 'INACTIVE' | 'ACTIVE' | 'EXPIRED' | 'TRIAL';
   startDate: string | null;
   expiryDate: string | null;
+  prepaidExpiryDate: string | null;
+  hasPrepaid: boolean;
   amount: number;
   freeMonths: number;
   createdAt: string;
@@ -182,6 +184,7 @@ const paymentTypeLabels: Record<string, string> = {
   REGISTRATION: 'Inscription',
   SUBSCRIPTION: 'Abonnement',
   RENEWAL: 'Renouvellement',
+  PREPAID: 'Prépayé (mois suivant)',
 };
 
 const paymentMethodLabels: Record<string, string> = {
@@ -241,7 +244,7 @@ export default function VendorSubscription() {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<string>('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [paymentType, setPaymentType] = useState<'REGISTRATION' | 'SUBSCRIPTION'>('SUBSCRIPTION');
+  const [paymentType, setPaymentType] = useState<'REGISTRATION' | 'SUBSCRIPTION' | 'PREPAID'>('SUBSCRIPTION');
   const [paymentStep, setPaymentStep] = useState<'form' | 'processing' | 'checking' | 'success' | 'error'>('form');
   const [checkoutUrl, setCheckoutUrl] = useState('');
   const [currentPaymentId, setCurrentPaymentId] = useState('');
@@ -302,7 +305,7 @@ export default function VendorSubscription() {
     };
   }, []);
 
-  const handleOpenPaymentDialog = (type: 'REGISTRATION' | 'SUBSCRIPTION') => {
+  const handleOpenPaymentDialog = (type: 'REGISTRATION' | 'SUBSCRIPTION' | 'PREPAID') => {
     setPaymentType(type);
     setPaymentStep('form');
     setSelectedMethod('');
@@ -599,13 +602,41 @@ export default function VendorSubscription() {
               )}
               {isActive && (
                 <div className="flex flex-col sm:flex-row gap-3">
+                  {/* Afficher le statut du prépaiement si existant */}
+                  {subscription?.hasPrepaid && subscription.prepaidExpiryDate && (
+                    <div className="w-full p-3 rounded-lg bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-950/30 border border-purple-200 dark:border-purple-800">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Sparkles className="h-4 w-4 text-purple-500" />
+                        <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                          Abonnement prépayé en attente
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        S'activera automatiquement le {formatDate(subscription.expiryDate)} •
+                        Expire le {formatDate(subscription.prepaidExpiryDate)}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Bouton pour payer en avance - seulement si pas déjà prépayé */}
+                  {!subscription?.hasPrepaid && (
+                    <Button
+                      variant="outline"
+                      className="flex-1 border-purple-400 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30"
+                      onClick={() => handleOpenPaymentDialog('PREPAID')}
+                    >
+                      <CalendarDays className="h-4 w-4 mr-2" />
+                      Payer le mois suivant en avance
+                    </Button>
+                  )}
+
                   <Button
                     variant="outline"
                     className="flex-1 border-emerald-400 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
                     onClick={() => handleOpenPaymentDialog('SUBSCRIPTION')}
                   >
                     <RefreshCw className="h-4 w-4 mr-2" />
-                    Renouveler par anticipation
+                    Renouveler maintenant
                   </Button>
                   <Button
                     variant="default"
@@ -846,12 +877,18 @@ export default function VendorSubscription() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5 text-emerald-500" />
-              {paymentType === 'REGISTRATION' ? 'Inscription Vendeur' : 'Renouvellement d\'abonnement'}
+              {paymentType === 'REGISTRATION'
+                ? 'Inscription Vendeur'
+                : paymentType === 'PREPAID'
+                  ? 'Paiement en avance'
+                  : 'Renouvellement d\'abonnement'}
             </DialogTitle>
             <DialogDescription>
               {paymentType === 'REGISTRATION'
                 ? 'Payez les frais d\'inscription de 10 000 FC pour activer votre boutique.'
-                : 'Renouvelez votre abonnement pour 31 jours supplémentaires.'}
+                : paymentType === 'PREPAID'
+                  ? 'Payez votre abonnement du mois suivant en avance. Il sera activé automatiquement à l\'expiration de votre abonnement actuel.'
+                  : 'Renouvelez votre abonnement pour 31 jours supplémentaires.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -1044,7 +1081,9 @@ export default function VendorSubscription() {
                 <p className="text-sm text-muted-foreground mb-4">
                   {paymentType === 'REGISTRATION'
                     ? 'Votre boutique est maintenant active. Votre abonnement est valable 31 jours.'
-                    : 'Votre abonnement a été renouvelé pour 31 jours supplémentaires.'}
+                    : paymentType === 'PREPAID'
+                      ? 'Votre abonnement prépayé a été enregistré. Il sera activé automatiquement à l\'expiration de votre abonnement actuel.'
+                      : 'Votre abonnement a été renouvelé pour 31 jours supplémentaires.'}
                 </p>
                 <Button
                   className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white"

@@ -152,11 +152,13 @@ function TypeBadge({ type }: { type: string }) {
     REGISTRATION: 'bg-blue-500/15 text-blue-400 border-blue-500/25',
     SUBSCRIPTION: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/25',
     RENEWAL: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/25',
+    PREPAID: 'bg-purple-500/15 text-purple-400 border-purple-500/25',
   };
   const labels: Record<string, string> = {
     REGISTRATION: 'Inscription',
     SUBSCRIPTION: 'Abonnement',
     RENEWAL: 'Renouvellement',
+    PREPAID: 'Prépayé (Avance)',
   };
   return (
     <Badge className={`${config[type] || 'bg-slate-500/15 text-slate-400 border-slate-500/25'} border text-[10px] h-5 px-2 font-medium`}>
@@ -187,6 +189,7 @@ function PaymentStatusBadge({ status }: { status: string }) {
 
 function MethodBadge({ method }: { method: string }) {
   const config: Record<string, string> = {
+    GENIUSPAY: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
     PAWAPAY: 'bg-blue-500/15 text-blue-400 border-blue-500/25',
     MANUAL: 'bg-slate-500/15 text-slate-400 border-slate-500/25',
     ADMIN_GRANT: 'bg-violet-500/15 text-violet-400 border-violet-500/25',

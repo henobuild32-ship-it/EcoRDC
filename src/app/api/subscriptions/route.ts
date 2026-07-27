@@ -74,23 +74,51 @@ export async function GET(request: NextRequest) {
     // Check if subscription has expired
     const daysLeft = daysUntilExpiry(subscription.expiryDate);
     if (subscription.status === 'ACTIVE' && daysLeft !== null && daysLeft < 0) {
-      // Auto-expire subscription (but don't suspend vendor - let them renew)
-      await db.subscription.update({
-        where: { id: subscription.id },
-        data: { status: 'EXPIRED' },
-      });
+      // Check if there's a prepaid period to activate
+      if (subscription.prepaidExpiryDate && subscription.prepaidExpiryDate > new Date()) {
+        const prepaidExpiryDate = subscription.prepaidExpiryDate;
 
-      subscription.status = 'EXPIRED';
+        await db.subscription.update({
+          where: { id: subscription.id },
+          data: {
+            status: 'ACTIVE',
+            startDate: new Date(),
+            expiryDate: prepaidExpiryDate,
+            prepaidExpiryDate: null,
+          },
+        });
 
-      // Notify vendor
-      await db.notification.create({
-        data: {
-          userId: vendor.id,
-          title: 'Abonnement expiré',
-          message: 'Votre abonnement a expiré. Veuillez renouveler votre abonnement pour continuer à vendre.',
-          type: 'SYSTEM',
-        },
-      });
+        subscription.status = 'ACTIVE';
+        subscription.startDate = new Date();
+        subscription.expiryDate = prepaidExpiryDate;
+        subscription.prepaidExpiryDate = null;
+
+        await db.notification.create({
+          data: {
+            userId: vendor.id,
+            title: 'Abonnement pr?pay? activ?',
+            message: 'Votre abonnement pr?pay? a ?t? activ? automatiquement. Bonne continuation !',
+            type: 'SYSTEM',
+          },
+        });
+      } else {
+        await db.subscription.update({
+          where: { id: subscription.id },
+          data: { status: 'EXPIRED', prepaidExpiryDate: null },
+        });
+
+        subscription.status = 'EXPIRED';
+        subscription.prepaidExpiryDate = null;
+
+        await db.notification.create({
+          data: {
+            userId: vendor.id,
+            title: 'Abonnement expir?',
+            message: 'Votre abonnement a expir?. Veuillez renouveler votre abonnement pour continuer ? vendre.',
+            type: 'SYSTEM',
+          },
+        });
+      }
     }
 
     // Get payment history
@@ -117,6 +145,8 @@ export async function GET(request: NextRequest) {
         status: subscription.status,
         startDate: subscription.startDate,
         expiryDate: subscription.expiryDate,
+        prepaidExpiryDate: subscription.prepaidExpiryDate,
+        hasPrepaid: !!subscription.prepaidExpiryDate,
         amount: subscription.amount,
         freeMonths: subscription.freeMonths,
         createdAt: subscription.createdAt,
@@ -164,30 +194,60 @@ export async function POST(request: NextRequest) {
       });
 
       let expiredCount = 0;
+      let prepaidActivatedCount = 0;
 
       for (const sub of expiredSubscriptions) {
-        // Update subscription status
+        if (sub.prepaidExpiryDate && sub.prepaidExpiryDate > now) {
+          await db.subscription.update({
+            where: { id: sub.id },
+            data: {
+              status: 'ACTIVE',
+              startDate: now,
+              expiryDate: sub.prepaidExpiryDate,
+              prepaidExpiryDate: null,
+            },
+          });
+
+          await db.notification.create({
+            data: {
+              userId: sub.vendorId,
+              title: 'Abonnement pr?pay? activ?',
+              message: 'Votre abonnement pr?pay? a ?t? activ? automatiquement. Bonne continuation !',
+              type: 'SYSTEM',
+            },
+          });
+
+          await db.activityLog.create({
+            data: {
+              userId: sub.vendorId,
+              action: 'SUBSCRIPTION_PREPAID_ACTIVATED',
+              details: `Abonnement pr?pay? activ? pour ${sub.vendor.name} (${sub.vendor.email})`,
+            },
+          });
+
+          prepaidActivatedCount++;
+          continue;
+        }
+
         await db.subscription.update({
           where: { id: sub.id },
-          data: { status: 'EXPIRED' },
+          data: { status: 'EXPIRED', prepaidExpiryDate: null },
         });
 
-        // Notify vendor (but don't suspend - let them renew)
         await db.notification.create({
           data: {
             userId: sub.vendorId,
-            title: 'Abonnement expiré',
-            message: 'Votre abonnement a expiré. Veuillez renouveler votre abonnement pour continuer à vendre.',
+            title: 'Abonnement expir?',
+            message: 'Votre abonnement a expir?. Veuillez renouveler votre abonnement pour continuer ? vendre.',
             type: 'SYSTEM',
           },
         });
 
-        // Log activity
         await db.activityLog.create({
           data: {
             userId: sub.vendorId,
             action: 'SUBSCRIPTION_EXPIRED',
-            details: `Abonnement expiré pour ${sub.vendor.name} (${sub.vendor.email})`,
+            details: `Abonnement expir? pour ${sub.vendor.name} (${sub.vendor.email})`,
           },
         });
 
@@ -197,9 +257,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         expiredCount,
-        message: `${expiredCount} abonnement(s) expiré(s) traité(s)`,
+        prepaidActivatedCount,
+        message: `${expiredCount} abonnement(s) expir?(s), ${prepaidActivatedCount} pr?paiement(s) activ?(s)`,
       });
     }
+
 
     // ============================
     // ADMIN ACTIONS
