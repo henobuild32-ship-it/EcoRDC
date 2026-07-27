@@ -135,18 +135,38 @@ export async function POST(request: NextRequest) {
     const callbackUrl = `${origin}/api/geniuspay/webhook`;
 
     // Create GeniusPay checkout session
-    const checkout = await createGeniusPayCheckout({
-      reference,
-      amount,
-      currency,
-      description: reason,
-      customerName: vendor.name,
-      customerEmail: vendor.email,
-      customerPhone: phoneNumber || vendor.phone || undefined,
-      paymentMethod: paymentMethod || undefined,
-      returnUrl: `${origin}/?payment=return&reference=${reference}`,
-      callbackUrl: `${origin}/api/geniuspay/webhook`,
-    });
+    // First try: with the user's selected payment method
+    // Second try: if that fails, fall back to checkout mode (no payment_method — GeniusPay's recommended approach)
+    let checkout: Awaited<ReturnType<typeof createGeniusPayCheckout>>;
+    try {
+      checkout = await createGeniusPayCheckout({
+        reference,
+        amount,
+        currency,
+        description: reason,
+        customerName: vendor.name,
+        customerEmail: vendor.email,
+        customerPhone: phoneNumber || vendor.phone || undefined,
+        paymentMethod: paymentMethod || undefined,
+        returnUrl: `${origin}/?payment=return&reference=${reference}`,
+        callbackUrl: `${origin}/api/geniuspay/webhook`,
+      });
+    } catch (firstError) {
+      console.warn('[GENIUSPAY] First payment attempt failed, retrying in checkout mode:', firstError instanceof Error ? firstError.message : String(firstError));
+      // Fallback: retry WITHOUT payment_method (GeniusPay hosted checkout)
+      checkout = await createGeniusPayCheckout({
+        reference,
+        amount,
+        currency,
+        description: reason,
+        customerName: vendor.name,
+        customerEmail: vendor.email,
+        customerPhone: phoneNumber || vendor.phone || undefined,
+        paymentMethod: undefined, // Checkout mode — no specific method
+        returnUrl: `${origin}/?payment=return&reference=${reference}`,
+        callbackUrl: `${origin}/api/geniuspay/webhook`,
+      });
+    }
 
     // For sandbox mode, build a local checkout URL that opens our GeniusPay-style
     // checkout page with all the transaction details and the vendor's token.
@@ -154,12 +174,12 @@ export async function POST(request: NextRequest) {
     if (checkout.sandbox) {
       const checkoutParams = new URLSearchParams({
         reference,
-        paymentId: '', // will be set after payment record creation
+        paymentId: '',
         tx_id: checkout.transactionId,
         amount: String(amount),
         currency,
         type,
-        method: paymentMethod || '',
+        method: paymentMethod || 'ALL',
         token: authToken || '',
       });
       checkout.checkoutUrl = `${origin}/checkout?${checkoutParams.toString()}`;

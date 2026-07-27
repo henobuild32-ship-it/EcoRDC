@@ -109,6 +109,7 @@ interface PaymentMethodInfo {
 }
 
 const PAYMENT_METHODS: PaymentMethodInfo[] = [
+  { id: 'ALL', label: 'Tous les moyens', icon: '💚', group: 'all', color: 'border-emerald-400 bg-emerald-50 dark:bg-emerald-950/20' },
   { id: 'orange_money', label: 'Orange Money', icon: '🟠', group: 'mobile', color: 'border-orange-400 bg-orange-50 dark:bg-orange-950/20' },
   { id: 'airtel_money', label: 'Airtel Money', icon: '🔴', group: 'mobile', color: 'border-red-400 bg-red-50 dark:bg-red-950/20' },
   { id: 'm_pesa', label: 'M-Pesa', icon: '🟢', group: 'mobile', color: 'border-green-400 bg-green-50 dark:bg-green-950/20' },
@@ -323,9 +324,10 @@ export default function VendorSubscription() {
       return;
     }
 
-    // Phone number required for mobile money
     const method = PAYMENT_METHODS.find(m => m.id === selectedMethod);
-    if (method?.group === 'mobile' && !phoneNumber) {
+
+    // Phone number required for mobile money (not for 'ALL' checkout mode)
+    if (selectedMethod !== 'ALL' && method?.group === 'mobile' && !phoneNumber) {
       setErrorMessage('Veuillez saisir votre numéro de téléphone mobile money');
       return;
     }
@@ -943,8 +945,8 @@ export default function VendorSubscription() {
                   </div>
                 </div>
 
-                {/* Phone number (for mobile money) */}
-                {selectedMethod && PAYMENT_METHODS.find(m => m.id === selectedMethod)?.group === 'mobile' && (
+                {/* Phone number (for mobile money, not ALL checkout mode) */}
+                {selectedMethod && selectedMethod !== 'ALL' && PAYMENT_METHODS.find(m => m.id === selectedMethod)?.group === 'mobile' && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
@@ -977,7 +979,9 @@ export default function VendorSubscription() {
                 <div className="flex items-center gap-2 text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
                   <Info className="h-4 w-4 flex-shrink-0 text-blue-500" />
                   <span>
-                    Vous serez redirigé vers GeniusPay Checkout pour finaliser le paiement de manière sécurisée.
+                    {selectedMethod === 'ALL'
+                      ? 'Vous serez redirigé vers GeniusPay Checkout pour choisir votre moyen de paiement et finaliser le paiement de manière sécurisée.'
+                      : 'Vous serez redirigé vers GeniusPay Checkout pour finaliser le paiement de manière sécurisée.'}
                   </span>
                 </div>
               </motion.div>
