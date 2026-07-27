@@ -601,8 +601,8 @@ export default function VendorSubscription() {
                   className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
                   onClick={() => handleOpenPaymentDialog('SUBSCRIPTION')}
                 >
-                  <Zap className="h-5 w-5 mr-2" />
-                  Activer et payer 10 000 FC / 31 jours
+                  <RefreshCw className="h-5 w-5 mr-2" />
+                  Renouveler — Payer l'abonnement 10 000 FC / 31 jours
                 </Button>
               )}
               {isActive && (
@@ -631,7 +631,7 @@ export default function VendorSubscription() {
                       onClick={() => handleOpenPaymentDialog('PREPAID')}
                     >
                       <CalendarDays className="h-4 w-4 mr-2" />
-                      Payer le mois suivant en avance
+                      {subscription?.status === 'TRIAL' ? 'Payer maintenant (début après essai)' : 'Payer le mois suivant en avance'}
                     </Button>
                   )}
 
@@ -641,7 +641,7 @@ export default function VendorSubscription() {
                     onClick={() => handleOpenPaymentDialog('SUBSCRIPTION')}
                   >
                     <RefreshCw className="h-4 w-4 mr-2" />
-                    Renouveler maintenant
+                    {subscription?.status === 'TRIAL' ? 'Payer l\'abonnement' : 'Renouveler'}
                   </Button>
                   <Button
                     variant="default"
@@ -892,8 +892,12 @@ export default function VendorSubscription() {
               {paymentType === 'REGISTRATION'
                 ? 'Payez les frais d\'inscription de 10 000 FC pour activer votre boutique.'
                 : paymentType === 'PREPAID'
-                  ? 'Payez votre abonnement du mois suivant en avance. Il sera activé automatiquement à l\'expiration de votre abonnement actuel.'
-                  : 'Renouvelez votre abonnement pour 31 jours supplémentaires.'}
+                  ? subscription?.status === 'TRIAL'
+                    ? 'Payez votre abonnement maintenant. Il débutera automatiquement après la fin de votre période d\'essai gratuite.'
+                    : 'Payez votre abonnement du mois suivant en avance. Il sera activé automatiquement à l\'expiration de votre abonnement actuel.'
+                  : subscription?.status === 'TRIAL'
+                    ? 'Payez votre abonnement maintenant. Il débutera après la fin de votre période d\'essai.'
+                    : 'Payer l\'abonnement pour 31 jours supplémentaires.'}
             </DialogDescription>
           </DialogHeader>
 

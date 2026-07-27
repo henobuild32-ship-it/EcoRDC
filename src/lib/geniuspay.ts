@@ -180,7 +180,7 @@ export async function activateOrExtendSubscription(vendorId: string, paymentType
         amount: MONTHLY_SUBSCRIPTION,
       },
     });
-  } else if (isPrepaid && subscription.status === 'ACTIVE' && subscription.expiryDate && subscription.expiryDate > now) {
+  } else if (isPrepaid && (subscription.status === 'ACTIVE' || subscription.status === 'TRIAL') && subscription.expiryDate && subscription.expiryDate > now) {
     // ==========================================
     // PREPAID: Store for later activation
     // ==========================================

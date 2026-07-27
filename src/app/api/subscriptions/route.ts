@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
     // Calculate days remaining and total days in period
     let daysRemaining = 0;
     let totalDaysInPeriod = 31;
-    if (subscription.status === 'ACTIVE' && subscription.expiryDate && subscription.startDate) {
+    if ((subscription.status === 'ACTIVE' || subscription.status === 'TRIAL') && subscription.expiryDate && subscription.startDate) {
       const now = new Date();
       const expiry = new Date(subscription.expiryDate);
       const start = new Date(subscription.startDate);
