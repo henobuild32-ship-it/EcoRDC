@@ -71,9 +71,9 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Check if subscription has expired
+    // Check if subscription has expired (for both ACTIVE and TRIAL)
     const daysLeft = daysUntilExpiry(subscription.expiryDate);
-    if (subscription.status === 'ACTIVE' && daysLeft !== null && daysLeft < 0) {
+    if ((subscription.status === 'ACTIVE' || subscription.status === 'TRIAL') && daysLeft !== null && daysLeft < 0) {
       // Check if there's a prepaid period to activate
       if (subscription.prepaidExpiryDate && subscription.prepaidExpiryDate > new Date()) {
         const prepaidExpiryDate = subscription.prepaidExpiryDate;

@@ -32,6 +32,7 @@ import {
   RefreshCw,
   Crown,
   Users,
+  CalendarDays,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -577,6 +578,56 @@ export default function VendorDashboard() {
       </AnimatePresence>
 
       <AnimatePresence>
+        {subscription && subscription.status === 'TRIAL' && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <Card className="border border-cyan-300 dark:border-cyan-700 bg-gradient-to-r from-cyan-50 to-sky-50 dark:from-cyan-950/20 dark:to-sky-950/20">
+              <CardContent className="p-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-cyan-400 to-sky-500 flex items-center justify-center shadow-sm">
+                      <Zap className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <Badge className="bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300 border-0 text-xs">
+                        Période d&apos;essai
+                      </Badge>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {subscription.expiryDate ? `Expire le ${new Date(subscription.expiryDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} • ${subscription.daysRemaining}j restants` : 'Durée illimitée'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCurrentView('vendor-subscription')}
+                      className="text-cyan-600 hover:text-cyan-700 hover:bg-cyan-100/50 dark:hover:bg-cyan-900/20"
+                    >
+                      Abonnement
+                      <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => setCurrentView('vendor-subscription')}
+                      className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-sm"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5 mr-1" />
+                      Payer en avance
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {subscription && subscription.status === 'ACTIVE' && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
@@ -586,7 +637,7 @@ export default function VendorDashboard() {
           >
             <Card className="border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20">
               <CardContent className="p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-sm">
                       <CheckCircle className="h-4 w-4 text-white" />
@@ -600,15 +651,27 @@ export default function VendorDashboard() {
                       </p>
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setCurrentView('vendor-subscription')}
-                    className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100/50 dark:hover:bg-emerald-900/20"
-                  >
-                    Gérer
-                    <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                  </Button>
+                  <div className="flex gap-2 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCurrentView('vendor-subscription')}
+                      className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100/50 dark:hover:bg-emerald-900/20"
+                    >
+                      Gérer
+                      <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                    </Button>
+                    {(!subscription as any).hasPrepaid ? null : (
+                      <Button
+                        size="sm"
+                        onClick={() => setCurrentView('vendor-subscription')}
+                        className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white shadow-sm"
+                      >
+                        <CalendarDays className="h-3.5 w-3.5 mr-1" />
+                        Payer en avance
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>

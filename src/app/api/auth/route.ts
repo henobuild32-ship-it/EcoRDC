@@ -313,24 +313,20 @@ export async function POST(request: NextRequest) {
       if (user.role === 'VENDOR') {
         const subscription = await db.subscription.findUnique({ where: { vendorId: user.id } });
         if (subscription && (subscription.status === 'ACTIVE' || subscription.status === 'TRIAL') && subscription.expiryDate && subscription.expiryDate < new Date()) {
-          // Expire subscription and suspend vendor
+          // Don't suspend the vendor — just expire the subscription
+          // so they can still access the subscription page to pay
           await db.subscription.update({
             where: { id: subscription.id },
             data: { status: 'EXPIRED' },
-          });
-          await db.user.update({
-            where: { id: user.id },
-            data: { isSuspended: true, isActive: false },
           });
           await db.notification.create({
             data: {
               userId: user.id,
               title: 'Abonnement expiré',
-              message: 'Votre abonnement a expiré. Votre boutique est suspendue. Veuillez renouveler votre abonnement.',
+              message: 'Votre abonnement a expiré. Veuillez renouveler pour continuer à vendre.',
               type: 'SYSTEM',
             },
           });
-          return NextResponse.json({ error: 'Compte suspendu ou désactivé' }, { status: 403 });
         }
       }
 

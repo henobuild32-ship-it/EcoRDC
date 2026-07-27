@@ -505,7 +505,7 @@ export default function VendorSubscription() {
   const StatusIcon = statusInfo.icon;
   const needsRegistration = !subscription || subscription.status === 'INACTIVE';
   const needsRenewal = subscription?.status === 'EXPIRED';
-  const isActive = subscription?.status === 'ACTIVE';
+  const isActive = subscription?.status === 'ACTIVE' || subscription?.status === 'TRIAL';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/20 to-teal-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-emerald-950/20 p-4 md:p-6 pb-24">
@@ -544,6 +544,9 @@ export default function VendorSubscription() {
                   <div>
                     <CardTitle className="text-2xl">{statusInfo.label}</CardTitle>
                     <p className="text-sm text-muted-foreground mt-1">
+                      {subscription?.status === 'TRIAL' && subscription?.expiryDate && (
+                        <>Période d'essai — Expire le {formatDate(subscription.expiryDate)} • {subscription.daysRemaining} jours restants</>
+                      )}
                       {isActive && subscription?.expiryDate && (
                         <>Expire le {formatDate(subscription.expiryDate)} • {subscription.daysRemaining} jours restants</>
                       )}
@@ -596,8 +599,8 @@ export default function VendorSubscription() {
                   className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
                   onClick={() => handleOpenPaymentDialog('SUBSCRIPTION')}
                 >
-                  <RefreshCw className="h-5 w-5 mr-2" />
-                  Renouveler maintenant (10 000 FC / 31 jours)
+                  <Zap className="h-5 w-5 mr-2" />
+                  Activer et payer 10 000 FC / 31 jours
                 </Button>
               )}
               {isActive && (
