@@ -43,7 +43,9 @@ import {
   Heart,
   Store,
   Sparkles,
+  BookOpen,
 } from 'lucide-react';
+import { ClientGuide } from '@/components/client/ClientGuide';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -67,6 +69,7 @@ export default function ClientProfile() {
   const [city, setCity] = useState((user as any)?.city || '');
   const [country, setCountry] = useState((user as any)?.country || '');
   const [saving, setSaving] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
   const [message, setMessage] = useState<{
     type: 'success' | 'error';
     text: string;
@@ -279,7 +282,11 @@ export default function ClientProfile() {
           <h1 className="text-2xl font-bold">Mon Profil</h1>
           <p className="text-sm text-muted-foreground">Gérez votre compte et vos préférences</p>
         </div>
+        <Button variant="outline" size="icon" onClick={() => setGuideOpen(true)} className="shrink-0" title="Guide d'utilisation">
+          <BookOpen className="h-5 w-5" />
+        </Button>
       </motion.div>
+      <ClientGuide open={guideOpen} onOpenChange={setGuideOpen} />
 
       {/* Profile Header Card */}
       <motion.div variants={itemVariants}>

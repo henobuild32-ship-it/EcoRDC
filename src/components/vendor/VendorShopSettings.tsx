@@ -49,8 +49,10 @@ import {
   Copy,
   Check,
   Share2,
+  BookOpen,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { VendorGuide } from '@/components/vendor/VendorGuide';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -107,6 +109,7 @@ export default function VendorShopSettings() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   // Vendor personal info
   const [userName, setUserName] = useState('');
@@ -443,7 +446,11 @@ export default function VendorShopSettings() {
             Gérez les paramètres de votre boutique
           </p>
         </div>
+        <Button variant="outline" size="icon" onClick={() => setGuideOpen(true)} className="shrink-0" title="Guide d'utilisation">
+          <BookOpen className="h-5 w-5" />
+        </Button>
       </motion.div>
+      <VendorGuide open={guideOpen} onOpenChange={setGuideOpen} />
 
       {/* Shop Link Preview */}
       <motion.div variants={itemVariants}>
