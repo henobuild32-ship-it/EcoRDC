@@ -98,9 +98,9 @@ export default function VendorShopSettings() {
   const [hours, setHours] = useState('');
   const [socials, setSocials] = useState('');
   const [currency, setCurrency] = useState('CDF');
-  const [logo, setLogo] = useState<string>('');
+
   const [saving, setSaving] = useState(false);
-  const [uploadingLogo, setUploadingLogo] = useState(false);
+
   const [requestingBadge, setRequestingBadge] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -139,7 +139,8 @@ export default function VendorShopSettings() {
     setAddress(s.address || user?.address || '');
     setCity(s.city || user?.city || '');
     setCountry(s.country || 'RD Congo');
-    setLogo(s.logo || '');
+
+
     setShopPhone(s.phone || user?.phone || '');
     setShopEmail(s.email || user?.email || '');
     setCommune(s.commune || '');
@@ -195,22 +196,7 @@ export default function VendorShopSettings() {
     }
   }, [user]);
 
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingLogo(true);
-    try {
-      const url = await uploadImage(file);
-      setLogo(url);
-      toast.success('Logo mis à jour');
-    } catch {
-      setMessage({ type: 'error', text: 'Erreur lors du téléchargement' });
-      toast.error('Erreur lors du téléchargement du logo');
-    } finally {
-      setUploadingLogo(false);
-    }
-  };
-
+  
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -277,7 +263,8 @@ export default function VendorShopSettings() {
           shopId: targetShop.id,
           name,
           description,
-          logo,
+
+
           category,
           address,
           city,
@@ -454,49 +441,6 @@ export default function VendorShopSettings() {
             Gérez les paramètres de votre boutique
           </p>
         </div>
-      </motion.div>
-
-      {/* Logo + Link */}
-      <motion.div variants={itemVariants}>
-        <Card className="overflow-hidden">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4">
-              <div className="relative group/logo">
-                <div className="h-20 w-20 rounded-2xl bg-white shadow-lg border-2 border-white overflow-hidden">
-                  {logo ? (
-                    <img
-                      src={logo}
-                      alt="Logo"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-emerald-50 dark:bg-emerald-900/30">
-                      <Store className="h-8 w-8 text-emerald-600" />
-                    </div>
-                  )}
-                </div>
-                <label className="absolute inset-0 rounded-2xl flex items-center justify-center bg-black/40 opacity-0 group-hover/logo:opacity-100 transition-opacity cursor-pointer">
-                  {uploadingLogo ? (
-                    <Loader2 className="h-5 w-5 text-white animate-spin" />
-                  ) : (
-                    <Camera className="h-5 w-5 text-white" />
-                  )}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLogoUpload}
-                    className="hidden"
-                    disabled={uploadingLogo}
-                  />
-                </label>
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium">Logo de la boutique</p>
-                <p className="text-xs text-muted-foreground">Cliquez pour changer</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </motion.div>
 
       {/* Shop Link Preview */}
