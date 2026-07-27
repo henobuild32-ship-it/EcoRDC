@@ -137,6 +137,25 @@ function AppContent() {
   const { currentView, user, setUser, setCurrentView, refreshUser } = useAppStore();
   const { touchAdminActivity, isAdminSessionExpired, adminLogout } = useAppStore();
 
+  // Handle payment redirect from GeniusPay checkout
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get('payment');
+    const paymentRef = params.get('reference');
+
+    if (paymentStatus === 'return' && paymentRef) {
+      // Clean URL
+      window.history.replaceState({}, '', '/');
+      // The vendor's subscription page will poll for status automatically
+      // Just show a friendly message
+      if (user?.role === 'VENDOR') {
+        setCurrentView('vendor-subscription');
+      }
+    } else if (paymentStatus === 'error') {
+      window.history.replaceState({}, '', '/');
+    }
+  }, []);
+
   // Restore session from localStorage
   useEffect(() => {
     const savedToken = localStorage.getItem('ecordc_token');

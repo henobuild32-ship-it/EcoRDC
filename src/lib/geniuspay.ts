@@ -420,29 +420,31 @@ export async function createGeniusPayCheckout(params: {
     (payload.customer as Record<string, unknown>).phone = customerPhone;
   }
 
-  // If paymentMethod is specified, use direct mode
+  // If paymentMethod is specified, use direct mode via PawaPay for RD Congo
   // If omitted, GeniusPay shows checkout page (recommended)
   if (paymentMethod && paymentMethod !== 'ALL') {
-    // Map to GeniusPay payment_method codes
-    // For RD Congo, use pawapay with mmo_provider
-    const methodMapping: Record<string, string> = {
-      'orange_money': 'orange_money',
-      'airtel_money': 'airtel_money',
-      'm_pesa': 'pawapay', // Vodacom M-Pesa via PawaPay
-      'mtn_money': 'mtn_money',
-      'moov_money': 'moov_money',
-      'wave': 'wave',
-      'card': 'card',
+    // For RD Congo, route ALL mobile money through PawaPay with mmo_provider
+    // This is the correct pattern per GeniusPay docs:
+    // payment_method: 'pawapay' + mmo_provider: 'ORANGE_COD' | 'AIRTEL_COD' | 'VODACOM_MPESA_COD'
+    const rdCongoProviders: Record<string, string> = {
+      'orange_money': 'ORANGE_COD',
+      'airtel_money': 'AIRTEL_COD',
+      'm_pesa': 'VODACOM_MPESA_COD',
+      'mtn_money': 'MTN_MOMO_COD',
+      'moov_money': 'MOOV_COD',
     };
-    payload.payment_method = methodMapping[paymentMethod] || paymentMethod;
 
-    // For RD Congo mobile money via PawaPay, specify mmo_provider
-    if (paymentMethod === 'airtel_money' && customerPhone) {
-      payload.mmo_provider = 'AIRTEL_COD';
-    } else if (paymentMethod === 'orange_money' && customerPhone) {
-      payload.mmo_provider = 'ORANGE_COD';
-    } else if (paymentMethod === 'm_pesa' && customerPhone) {
-      payload.mmo_provider = 'VODACOM_MPESA_COD';
+    const mmoProvider = rdCongoProviders[paymentMethod];
+    if (mmoProvider) {
+      // Use PawaPay with explicit mmo_provider for RD Congo mobile money
+      payload.payment_method = 'pawapay';
+      payload.mmo_provider = mmoProvider;
+    } else if (paymentMethod === 'wave') {
+      payload.payment_method = 'wave';
+    } else if (paymentMethod === 'card') {
+      payload.payment_method = 'card';
+    } else {
+      payload.payment_method = paymentMethod;
     }
   }
 
