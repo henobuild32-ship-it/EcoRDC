@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { useAppStore, type AppView } from '@/lib/store';
 import AdminSidebar from './AdminSidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -108,14 +108,14 @@ const container = {
   show: { opacity: 1, transition: { staggerChildren: 0.05 } },
 };
 
-const item = {
+const item: Variants = {
   hidden: { opacity: 0, y: 24 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] } },
 };
 
-const cardHover = {
+const cardHover: Variants = {
   rest: { scale: 1 },
-  hover: { scale: 1.02, transition: { duration: 0.2, ease: 'easeOut' } },
+  hover: { scale: 1.02, transition: { duration: 0.2, ease: 'easeInOut' } },
 };
 
 /* ───────────────── Stat Card Component ───────────────── */
@@ -211,7 +211,7 @@ function BarChart({ data, color, hoverColor, height = 140 }: {
             <motion.div
               initial={{ height: 0 }}
               animate={{ height: `${pct}%` }}
-              transition={{ duration: 0.6, delay: i * 0.07, ease: [0.25, 0.46, 0.45, 0.94] }}
+              transition={{ duration: 0.6, delay: i * 0.07, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
               className={`w-full rounded-t-md transition-colors duration-200 ${isHovered ? hoverColor : color}`}
               style={{ minHeight: pct > 0 ? 4 : 0 }}
             />

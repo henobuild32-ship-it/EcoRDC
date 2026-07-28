@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PromoBanner } from '@/components/client/PromoBanner';
 import {
   ShoppingBag,
   MessageCircle,
@@ -35,7 +36,7 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] } },
 };
 
 // Animated counter hook - uses requestAnimationFrame callback to avoid sync setState in effect
@@ -344,6 +345,11 @@ export default function ClientDashboard() {
             </div>
           </CardContent>
         </Card>
+      </motion.div>
+
+      {/* Promotions Banner */}
+      <motion.div variants={itemVariants}>
+        <PromoBanner onProductClick={(id) => { window.location.href = `/shop/${id}`; }} />
       </motion.div>
 
       {/* Stats Cards with Animated Counters */}

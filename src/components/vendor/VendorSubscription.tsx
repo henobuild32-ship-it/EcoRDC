@@ -104,7 +104,7 @@ interface PaymentMethodInfo {
   id: string;
   label: string;
   icon: string;
-  group: 'mobile' | 'card';
+  group: 'mobile' | 'card' | 'all';
   color: string;
 }
 

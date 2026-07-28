@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback, useSyncExternalStore }
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from 'next-themes';
 import { useAppStore, type AppView } from '@/lib/store';
+import NotificationPermissionBanner from '@/components/notifications/NotificationPermissionBanner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -218,6 +219,20 @@ export default function AppHeader() {
         const data = await res.json();
         const all = data.notifications || [];
         const unread = all.filter((n: { isRead: boolean }) => !n.isRead).length;
+
+        // Trigger native web browser push notification if new unread notification arrived
+        if (unread > notifCountRef.current && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          const newest = all.find((n: { isRead: boolean }) => !n.isRead);
+          if (newest) {
+            try {
+              new Notification(newest.title, {
+                body: newest.message,
+                icon: '/ecordc-logo.png',
+              });
+            } catch {}
+          }
+        }
+
         setPrevNotificationCount(notifCountRef.current);
         setNotificationCount(unread);
         setNotifications(all.slice(0, 10));
@@ -395,7 +410,9 @@ export default function AppHeader() {
   if (isLanding || isAuth) return null;
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
+    <>
+      <NotificationPermissionBanner />
+      <header className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
       {/* Gradient bottom border */}
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1036,5 +1053,6 @@ export default function AppHeader() {
         />
       )}
     </header>
+    </>
   );
 }

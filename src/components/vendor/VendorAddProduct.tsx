@@ -62,10 +62,20 @@ export default function VendorAddProduct() {
 
   const [name, setName] = useState(selectedProduct?.name || '');
   const [description, setDescription] = useState(selectedProduct?.description || '');
+  const [shortDescription, setShortDescription] = useState((selectedProduct as any)?.shortDescription || '');
   const [price, setPrice] = useState(selectedProduct?.price?.toString() || '');
-  const [compareAtPrice, setCompareAtPrice] = useState('');
+  const [compareAtPrice, setCompareAtPrice] = useState((selectedProduct as any)?.compareAtPrice?.toString() || '');
+  const [sku, setSku] = useState((selectedProduct as any)?.sku || '');
   const [category, setCategory] = useState(selectedProduct?.category || '');
+  const [subcategory, setSubcategory] = useState((selectedProduct as any)?.subcategory || '');
+  const [brand, setBrand] = useState((selectedProduct as any)?.brand || '');
   const [stock, setStock] = useState(selectedProduct?.stock?.toString() || '');
+  const [weight, setWeight] = useState((selectedProduct as any)?.weight?.toString() || '');
+  const [weightUnit, setWeightUnit] = useState((selectedProduct as any)?.weightUnit || 'kg');
+  const [dimensions, setDimensions] = useState((selectedProduct as any)?.dimensions || '');
+  const [material, setMaterial] = useState((selectedProduct as any)?.material || '');
+  const [origin, setOrigin] = useState((selectedProduct as any)?.origin || '');
+  const [video, setVideo] = useState((selectedProduct as any)?.video || '');
   const [images, setImages] = useState<string[]>(
     selectedProduct?.images ? (selectedProduct.images as string).split(',').filter(Boolean) : []
   );
@@ -74,6 +84,7 @@ export default function VendorAddProduct() {
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const handleImageUpload = async (files: FileList | null) => {
     if (!files || !token) return;
@@ -120,11 +131,21 @@ export default function VendorAddProduct() {
       const body = {
         name,
         description,
+        shortDescription,
         price: parseFloat(price),
         compareAtPrice: compareAtPrice ? parseFloat(compareAtPrice) : undefined,
-        images: images.join(','),
+        sku,
         category,
+        subcategory,
+        brand,
+        images: images.join(','),
+        video,
         stock: parseInt(stock) || 0,
+        weight: weight ? parseFloat(weight) : undefined,
+        weightUnit,
+        dimensions,
+        material,
+        origin,
         isActive: publish,
         ...(isEditing ? { productId: selectedProduct?.id } : {}),
       };
@@ -291,6 +312,76 @@ export default function VendorAddProduct() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Subcategory & Brand */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="subcategory">Sous-catégorie</Label>
+                <Input id="subcategory" value={subcategory} onChange={(e) => setSubcategory(e.target.value)} placeholder="Ex: Smartphones" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="brand">Marque</Label>
+                <Input id="brand" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="Ex: Samsung" />
+              </div>
+            </div>
+
+            {/* Short description */}
+            <div className="space-y-2">
+              <Label htmlFor="short-desc">Résumé</Label>
+              <Textarea id="short-desc" value={shortDescription} onChange={(e) => setShortDescription(e.target.value)} placeholder="Résumé court du produit" rows={2} className="min-h-[60px]" />
+            </div>
+
+            {/* Advanced fields toggle */}
+            <div>
+              <Button type="button" variant="ghost" size="sm" className="text-emerald-600 gap-1" onClick={() => setShowAdvanced(!showAdvanced)}>
+                {showAdvanced ? 'Masquer' : 'Afficher'} les champs avancés
+              </Button>
+            </div>
+
+            {showAdvanced && (
+              <div className="space-y-4 p-4 rounded-xl border bg-muted/20">
+                <p className="text-sm font-medium text-muted-foreground">Informations complémentaires</p>
+                <div className="space-y-2">
+                  <Label htmlFor="sku">SKU / Référence</Label>
+                  <Input id="sku" value={sku} onChange={(e) => setSku(e.target.value)} placeholder="Ex: SAM-A54-BLK" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="weight">Poids</Label>
+                    <Input id="weight" type="number" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="0" min="0" step="0.1" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Unité poids</Label>
+                    <Select value={weightUnit} onValueChange={setWeightUnit}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="g">Grammes (g)</SelectItem>
+                        <SelectItem value="kg">Kilogrammes (kg)</SelectItem>
+                        <SelectItem value="lb">Livres (lb)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="dimensions">Dimensions</Label>
+                    <Input id="dimensions" value={dimensions} onChange={(e) => setDimensions(e.target.value)} placeholder="30x20x10 cm" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="material">Matière</Label>
+                    <Input id="material" value={material} onChange={(e) => setMaterial(e.target.value)} placeholder="Ex: Cuir, coton..." />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="origin">Origine</Label>
+                    <Input id="origin" value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="Ex: RDC, Chine..." />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="video">Lien vidéo (YouTube/Vimeo)</Label>
+                  <Input id="video" value={video} onChange={(e) => setVideo(e.target.value)} placeholder="https://youtube.com/watch?v=..." />
+                </div>
+              </div>
+            )}
 
             {/* Status */}
             <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border">

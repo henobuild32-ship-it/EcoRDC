@@ -25,6 +25,7 @@ export default async function ShopPage({ params }: Props) {
           price: true,
           images: true,
           category: true,
+          stock: true,
           isActive: true,
           createdAt: true,
         },

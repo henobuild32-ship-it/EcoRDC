@@ -22,7 +22,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: "EcoRDC - Plateforme E-commerce en RDC",
-  description: "La plateforme e-commerce de référence en République Démocratique du Congo. Connectez vendeurs et clients, développez votre activité et achetez en toute confiance.",
+  description: "La plateforme e-commerce de référence en RDC et pensée pour toute l'Afrique. Connectez vendeurs et clients, développez votre activité et achetez en toute confiance.",
   keywords: ["EcoRDC", "e-commerce", "RDC", "Congo", "boutique en ligne", "vendeur", "client"],
   authors: [{ name: "HenoBuild" }],
   icons: {
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   openGraph: {
     title: "EcoRDC - Plateforme E-commerce en RDC",
-    description: "Connectez vendeurs et clients, développez votre activité et achetez en toute confiance.",
+    description: "La plateforme e-commerce de référence en RDC et pensée pour toute l'Afrique. Connectez vendeurs et clients, développez votre activité et achetez en toute confiance.",
     siteName: "EcoRDC",
     type: "website",
   },

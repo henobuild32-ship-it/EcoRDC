@@ -175,6 +175,7 @@ export default function VendorMessages() {
       id: partnerId,
       name: conversations.find((c) => c.id === partnerId)?.name || '',
       email: '',
+      role: 'CLIENT',
       isActive: true,
       createdAt: '',
     });

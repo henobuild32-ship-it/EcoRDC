@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
       data: {
         userId: receiverId,
         title: 'Nouveau message',
-        message: `Message de ${payload.name}`,
+        message: `Message de ${message.sender.name}`,
         type: 'MESSAGE',
       },
     });

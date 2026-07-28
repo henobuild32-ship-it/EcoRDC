@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
     }
 
     let totalAmount = 0;
-    const orderItems = [];
+    const orderItems: { productId: string; quantity: number; price: number }[] = [];
 
     for (const item of items) {
       const product = await db.product.findUnique({ where: { id: item.productId } });

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
-import { motion, useInView } from 'framer-motion';
+import { motion, useInView, type Variants } from 'framer-motion';
 import { useAppStore, type Shop } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -39,12 +39,12 @@ import {
 } from 'lucide-react';
 
 // Animation variants
-const fadeInUp = {
+const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 30 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeInOut' } },
 };
 
-const staggerContainer = {
+const staggerContainer: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -52,9 +52,9 @@ const staggerContainer = {
   },
 };
 
-const scaleIn = {
+const scaleIn: Variants = {
   hidden: { opacity: 0, scale: 0.9 },
-  visible: { opacity: 1, scale: 1, transition: { duration: 0.5, ease: 'easeOut' } },
+  visible: { opacity: 1, scale: 1, transition: { duration: 0.5, ease: 'easeInOut' } },
 };
 
 // Section wrapper with scroll animation
@@ -367,7 +367,7 @@ export default function LandingPage() {
               transition={{ duration: 0.6, delay: 0.4 }}
               className="text-lg sm:text-xl lg:text-2xl text-muted-foreground max-w-3xl mx-auto mb-10"
             >
-              La plateforme e-commerce de référence en RDC. Connectez vendeurs et clients,
+              La plateforme e-commerce de référence en RDC et pensée pour toute l&apos;Afrique. Connectez vendeurs et clients,
               développez votre activité et achetez en toute confiance.
             </motion.p>
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, type Variants } from 'framer-motion';
 import { useAppStore, type Shop, type Product } from '@/lib/store';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,10 +22,15 @@ import {
   Tag,
   Link2,
   Phone,
+  Sparkles,
+  Bell,
+  BellOff,
+  QrCode,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import ShopQRModal from '@/components/vendor/ShopQRModal';
 
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -33,9 +38,9 @@ const containerVariants = {
   },
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeInOut' } },
 };
 
 export default function ClientShopView() {
@@ -48,6 +53,10 @@ export default function ClientShopView() {
   const [followLoading, setFollowLoading] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [favoriteLoading, setFavoriteLoading] = useState<string | null>(null);
+  const [shopPromotions, setShopPromotions] = useState<Record<string, { discount: number; title: string }>>({});
+  const [restockNotifs, setRestockNotifs] = useState<Set<string>>(new Set());
+  const [restockLoading, setRestockLoading] = useState<string | null>(null);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
 
   useEffect(() => {
     if (!selectedShop?.slug && !selectedShop?.id) return;
@@ -63,13 +72,35 @@ export default function ClientShopView() {
         }
       } catch {
         // silently handle
-      } finally {
-        setLoading(false);
       }
     };
 
+    const fetchPromotions = async () => {
+      try {
+        const id = selectedShop.id;
+        const res = await fetch(`/api/promotions?shopId=${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          const promoMap: Record<string, { discount: number; title: string }> = {};
+          for (const p of data.promotions || []) {
+            for (const pp of p.products || []) {
+              promoMap[pp.productId] = { discount: p.discount || 0, title: p.title };
+            }
+          }
+          setShopPromotions(promoMap);
+        }
+      } catch {}
+    };
+
     fetchShop();
+    fetchPromotions();
   }, [selectedShop]);
+
+  useEffect(() => {
+    if (!loading && products.length > 0) {
+      setLoading(false);
+    }
+  }, [products, loading]);
 
   const fetchFollowAndFavorites = useCallback(async () => {
     if (!token || !shop) return;
@@ -95,6 +126,17 @@ export default function ClientShopView() {
         );
         setFavoriteIds(favSet);
       }
+
+      const restockRes = await fetch('/api/stock/restock-notify', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (restockRes.ok) {
+        const data = await restockRes.json();
+        const notifSet = new Set<string>(
+          (data.notifications || []).map((n: { productId: string }) => n.productId)
+        );
+        setRestockNotifs(notifSet);
+      }
     } catch {
       // silently handle
     }
@@ -105,6 +147,52 @@ export default function ClientShopView() {
       fetchFollowAndFavorites();
     }
   }, [shop, token, fetchFollowAndFavorites]);
+
+  const handleToggleRestockNotify = async (productId: string) => {
+    if (!token) {
+      toast.error('Connectez-vous pour recevoir des notifications');
+      return;
+    }
+    setRestockLoading(productId);
+    try {
+      const isRegistered = restockNotifs.has(productId);
+      if (isRegistered) {
+        const res = await fetch(`/api/stock/restock-notify?productId=${productId}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          setRestockNotifs((prev) => {
+            const next = new Set(prev);
+            next.delete(productId);
+            return next;
+          });
+          toast.success('Notification annulée');
+        }
+      } else {
+        const res = await fetch('/api/stock/restock-notify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ productId }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setRestockNotifs((prev) => new Set(prev).add(productId));
+          toast.success(data.message || 'Vous serez notifié dès le réapprovisionnement !');
+        } else {
+          const data = await res.json();
+          toast.error(data.error || 'Erreur lors de l\'inscription');
+        }
+      }
+    } catch {
+      toast.error('Erreur réseau');
+    } finally {
+      setRestockLoading(null);
+    }
+  };
 
   const handleAddToCart = async (product: Product) => {
     if (!token) return;
@@ -131,6 +219,7 @@ export default function ClientShopView() {
         id: shop.owner.id,
         name: shop.owner.name,
         email: shop.owner.email,
+        role: 'VENDOR',
         isActive: true,
         createdAt: '',
       });
@@ -366,6 +455,15 @@ export default function ClientShopView() {
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <Button
+                onClick={() => setQrModalOpen(true)}
+                variant="outline"
+                size="sm"
+                className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-900/30"
+              >
+                <QrCode className="mr-2 h-4 w-4" />
+                QR Code
+              </Button>
+              <Button
                 onClick={handleShare}
                 variant="outline"
                 size="sm"
@@ -426,6 +524,7 @@ export default function ClientShopView() {
             {products.map((product) => {
               const images = product.images ? product.images.split(',').filter(Boolean) : [];
               const isFav = favoriteIds.has(product.id);
+              const isRestockRegistered = restockNotifs.has(product.id);
               return (
                 <motion.div key={product.id} variants={itemVariants}>
                   <Card className="overflow-hidden hover:shadow-lg transition-all group border-0 shadow-sm">
@@ -441,14 +540,22 @@ export default function ClientShopView() {
                           <Package className="h-12 w-12 text-emerald-200 dark:text-emerald-800" />
                         </div>
                       )}
-                      {product.stock <= 5 && product.stock > 0 && (
+                      {shopPromotions[product.id] && (
+                        <Badge className="absolute top-2 right-2 bg-amber-500 text-white border-0 text-[10px] z-10">
+                          <Sparkles className="h-3 w-3 mr-0.5" />-{shopPromotions[product.id].discount}%
+                        </Badge>
+                      )}
+                      {product.stock <= 5 && product.stock > 0 && !shopPromotions[product.id] && (
                         <Badge className="absolute top-2 right-2 bg-orange-500 text-white border-0 text-[10px]">
-                          Stock limité
+                          Stock limité ({product.stock})
                         </Badge>
                       )}
                       {product.stock === 0 && (
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                          <Badge className="bg-red-600 text-white border-0">Rupture de stock</Badge>
+                        <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex flex-col items-center justify-center gap-1.5 p-2">
+                          <Badge className="bg-red-600 text-white border-0 shadow-lg text-xs">
+                            Rupture de stock
+                          </Badge>
+                          <p className="text-[10px] text-white/80 text-center">Impossible de commander</p>
                         </div>
                       )}
                       {token && (
@@ -486,24 +593,56 @@ export default function ClientShopView() {
                       <p className="text-emerald-600 dark:text-emerald-400 font-bold">
                         {product.price.toLocaleString('fr-FR')} CDF
                       </p>
-                      <Button
-                        size="sm"
-                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-xs"
-                        disabled={product.stock === 0 || addingToCart === product.id}
-                        onClick={() => handleAddToCart(product)}
-                      >
-                        {addingToCart === product.id ? (
-                          <span className="flex items-center gap-1">
-                            <span className="h-3 w-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            Ajout...
-                          </span>
-                        ) : (
-                          <>
-                            <ShoppingCart className="mr-1 h-3 w-3" />
-                            Ajouter au panier
-                          </>
-                        )}
-                      </Button>
+                      
+                      {product.stock === 0 ? (
+                        <Button
+                          size="sm"
+                          variant={isRestockRegistered ? 'outline' : 'default'}
+                          className={`w-full text-xs ${
+                            isRestockRegistered
+                              ? 'border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-300'
+                              : 'bg-amber-600 hover:bg-amber-700 text-white'
+                          }`}
+                          disabled={restockLoading === product.id}
+                          onClick={() => handleToggleRestockNotify(product.id)}
+                        >
+                          {restockLoading === product.id ? (
+                            <span className="flex items-center gap-1">
+                              <span className="h-3 w-3 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                              Traitement...
+                            </span>
+                          ) : isRestockRegistered ? (
+                            <>
+                              <BellOff className="mr-1 h-3 w-3 text-amber-600" />
+                              Notification activée
+                            </>
+                          ) : (
+                            <>
+                              <Bell className="mr-1 h-3 w-3" />
+                              Me notifier si disponible
+                            </>
+                          )}
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-xs"
+                          disabled={addingToCart === product.id}
+                          onClick={() => handleAddToCart(product)}
+                        >
+                          {addingToCart === product.id ? (
+                            <span className="flex items-center gap-1">
+                              <span className="h-3 w-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              Ajout...
+                            </span>
+                          ) : (
+                            <>
+                              <ShoppingCart className="mr-1 h-3 w-3" />
+                              Ajouter au panier
+                            </>
+                          )}
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -512,6 +651,16 @@ export default function ClientShopView() {
           </div>
         )}
       </motion.div>
+
+      {/* Shop QR Modal */}
+      {shop && (
+        <ShopQRModal
+          open={qrModalOpen}
+          onClose={() => setQrModalOpen(false)}
+          shopSlug={shop.slug || shop.id}
+          shopName={shop.name}
+        />
+      )}
     </motion.div>
   );
 }

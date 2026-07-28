@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
         await db.activityLog.create({
           data: {
             action: 'GENIUSPAY_WEBHOOK_SIGNATURE_MISMATCH',
-            details: `Signature webhook non valide mais requête traitée quand même (paiement ${event})`,
+            details: `Signature webhook non valide mais requête traitée quand même (paiement ${webhookEvent || 'inconnu'})`,
           },
         });
       } else {

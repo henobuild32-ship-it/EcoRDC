@@ -14,7 +14,10 @@ import {
   Star,
   User,
   Lock,
+  QrCode,
+  Bell,
 } from 'lucide-react';
+import ShopQRModal from '@/components/vendor/ShopQRModal';
 
 interface ShopData {
   id: string;
@@ -44,6 +47,7 @@ interface ProductData {
   currency: string;
   image: string | null;
   category: string | null;
+  stock?: number;
   isActive: boolean;
   createdAt: string;
 }
@@ -60,6 +64,7 @@ export function PublicShopClient({ shop }: { shop: ShopData }) {
   const [showContactModal, setShowContactModal] = useState(false);
   const [logoError, setLogoError] = useState(false);
   const [productImgErrors, setProductImgErrors] = useState<Set<string>>(new Set());
+  const [qrModalOpen, setQrModalOpen] = useState(false);
 
   const handleShare = async () => {
     const url = window.location.href;
@@ -183,7 +188,16 @@ export function PublicShopClient({ shop }: { shop: ShopData }) {
             </div>
 
             {/* Actions */}
-            <div className="flex gap-2 shrink-0 w-full md:w-auto">
+            <div className="flex gap-2 shrink-0 w-full md:w-auto flex-wrap">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setQrModalOpen(true)}
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20 flex-1 md:flex-none"
+              >
+                <QrCode className="h-4 w-4 mr-1" />
+                QR Code
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -220,51 +234,76 @@ export function PublicShopClient({ shop }: { shop: ShopData }) {
           </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {shop.products.map((product) => (
-              <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                {product.image && !productImgErrors.has(product.id) ? (
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    onError={() => handleProductImgError(product.id)}
-                    className="w-full h-48 object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-48 bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-900/30 dark:to-teal-900/30 flex items-center justify-center">
-                    <Package className="h-12 w-12 text-emerald-300" />
-                  </div>
-                )}
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <h3 className="font-semibold text-sm line-clamp-2">{product.name}</h3>
-                    {product.category && (
-                      <Badge variant="outline" className="text-[10px] shrink-0">
-                        {product.category}
-                      </Badge>
+            {shop.products.map((product) => {
+              const isOutOfStock = product.stock === 0;
+              return (
+                <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow relative">
+                  <div className="relative">
+                    {product.image && !productImgErrors.has(product.id) ? (
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        onError={() => handleProductImgError(product.id)}
+                        className="w-full h-48 object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-48 bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-900/30 dark:to-teal-900/30 flex items-center justify-center">
+                        <Package className="h-12 w-12 text-emerald-300" />
+                      </div>
+                    )}
+                    {isOutOfStock && (
+                      <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex flex-col items-center justify-center gap-1.5 p-2">
+                        <Badge className="bg-red-600 text-white border-0 shadow-lg text-xs">
+                          Rupture de stock
+                        </Badge>
+                        <p className="text-[10px] text-white/80 text-center">Commandes suspendues</p>
+                      </div>
                     )}
                   </div>
-                  {product.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
-                      {product.description}
-                    </p>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                      {formatPrice(product.price)}
-                    </span>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setShowContactModal(true)}
-                      className="h-8 text-xs"
-                    >
-                      <MessageCircle className="h-3 w-3 mr-1" />
-                      Commander
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <h3 className="font-semibold text-sm line-clamp-2">{product.name}</h3>
+                      {product.category && (
+                        <Badge variant="outline" className="text-[10px] shrink-0">
+                          {product.category}
+                        </Badge>
+                      )}
+                    </div>
+                    {product.description && (
+                      <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
+                        {product.description}
+                      </p>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                        {formatPrice(product.price)}
+                      </span>
+                      {isOutOfStock ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setShowContactModal(true)}
+                          className="h-8 text-xs border-amber-300 text-amber-700 bg-amber-50"
+                        >
+                          <Bell className="h-3 w-3 mr-1" />
+                          Notifier
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setShowContactModal(true)}
+                          className="h-8 text-xs"
+                        >
+                          <MessageCircle className="h-3 w-3 mr-1" />
+                          Commander
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
@@ -333,6 +372,14 @@ export function PublicShopClient({ shop }: { shop: ShopData }) {
       <div className="text-center py-6 text-xs text-muted-foreground border-t">
         Boutique hébergée sur EcoRDC &copy; 2026
       </div>
+
+      {/* QR Code Modal */}
+      <ShopQRModal
+        open={qrModalOpen}
+        onClose={() => setQrModalOpen(false)}
+        shopSlug={shop.slug || shop.id}
+        shopName={shop.name}
+      />
     </div>
   );
 }

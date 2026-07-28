@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAppStore, type Shop } from '@/lib/store';
+import { AFRICAN_COUNTRIES, getCitiesByCountry } from '@/lib/african-countries';
 import { uploadImage } from '@/lib/upload';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,9 +51,11 @@ import {
   Check,
   Share2,
   BookOpen,
+  QrCode,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { VendorGuide } from '@/components/vendor/VendorGuide';
+import ShopQRModal from '@/components/vendor/ShopQRModal';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -79,10 +82,7 @@ const shopCategories = [
   'Autres',
 ];
 
-const cities = [
-  'Kinshasa', 'Lubumbashi', 'Mbuji-Mayi', 'Kananga', 'Kisangani',
-  'Goma', 'Bukavu', 'Tshikapa', 'Kikwit', 'Matadi',
-];
+// cities removed — dynamic from AFRICAN_COUNTRIES
 
 export default function VendorShopSettings() {
   const { user, token, setCurrentView, setUser } = useAppStore();
@@ -110,6 +110,7 @@ export default function VendorShopSettings() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
 
   // Vendor personal info
   const [userName, setUserName] = useState('');
@@ -117,6 +118,7 @@ export default function VendorShopSettings() {
   const [userPhone, setUserPhone] = useState('');
   const [userAddress, setUserAddress] = useState('');
   const [userCity, setUserCity] = useState('');
+  const [userCountry, setUserCountry] = useState('RDC');
   const [userAvatar, setUserAvatar] = useState('');
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
@@ -143,10 +145,11 @@ export default function VendorShopSettings() {
     setCategory(s.category || '');
     setAddress(s.address || user?.address || '');
     setCity(s.city || user?.city || '');
-    setCountry(s.country || 'RD Congo');
+    setCountry(s.country || 'RDC');
 
 
     setShopPhone(s.phone || user?.phone || '');
+    setUserCountry((user as any)?.country || 'RDC');
     setShopEmail(s.email || user?.email || '');
     setCommune(s.commune || '');
     setHours(s.hours || '');
@@ -328,6 +331,7 @@ export default function VendorShopSettings() {
           phone: userPhone,
           address: userAddress,
           city: userCity,
+          country: userCountry,
           avatar: userAvatar || undefined,
         }),
       });
@@ -471,24 +475,35 @@ export default function VendorShopSettings() {
                   </p>
                 </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCopyLink}
-                className="bg-white dark:bg-gray-800 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100/50 shrink-0"
-              >
-                {copiedLink ? (
-                  <>
-                    <Check className="h-4 w-4 mr-1 text-emerald-600" />
-                    Copié !
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-4 w-4 mr-1" />
-                    Copier le lien
-                  </>
-                )}
-              </Button>
+              <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setQrModalOpen(true)}
+                  className="bg-white dark:bg-gray-800 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100/50"
+                >
+                  <QrCode className="h-4 w-4 mr-1.5" />
+                  QR Code
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyLink}
+                  className="bg-white dark:bg-gray-800 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100/50"
+                >
+                  {copiedLink ? (
+                    <>
+                      <Check className="h-4 w-4 mr-1 text-emerald-600" />
+                      Copié !
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4 mr-1" />
+                      Copier le lien
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -594,8 +609,8 @@ export default function VendorShopSettings() {
                     <SelectTrigger>
                       <SelectValue placeholder="Sélectionner" />
                     </SelectTrigger>
-                    <SelectContent>
-                      {cities.map((c) => (
+                    <SelectContent className="max-h-60">
+                      {getCitiesByCountry(country).map((c) => (
                         <SelectItem key={c} value={c}>
                           {c}
                         </SelectItem>
@@ -614,12 +629,14 @@ export default function VendorShopSettings() {
                 </div>
                 <div className="space-y-2 sm:col-span-2">
                   <Label>Pays</Label>
-                  <Select value={country} onValueChange={setCountry}>
+                  <Select value={country} onValueChange={(v) => { setCountry(v); setCity(''); }}>
                     <SelectTrigger>
                       <SelectValue placeholder="Sélectionner" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="RD Congo">RD Congo</SelectItem>
+                    <SelectContent className="max-h-60">
+                      {AFRICAN_COUNTRIES.map((c) => (
+                        <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -811,20 +828,35 @@ export default function VendorShopSettings() {
                 </div>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label>Ville</Label>
-              <Select value={userCity} onValueChange={setUserCity}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner" />
-                </SelectTrigger>
-                <SelectContent>
-                  {cities.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Ville</Label>
+                <Select value={userCity} onValueChange={setUserCity}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {getCitiesByCountry(userCountry).map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Pays</Label>
+                <Select value={userCountry} onValueChange={(v) => { setUserCountry(v); setUserCity(''); }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {AFRICAN_COUNTRIES.map((c) => (
+                      <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {profileMessage && (
@@ -967,6 +999,16 @@ export default function VendorShopSettings() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Shop QR Code Modal */}
+      {(shop || user?.shop) && (
+        <ShopQRModal
+          open={qrModalOpen}
+          onClose={() => setQrModalOpen(false)}
+          shopSlug={shop?.slug || user?.shop?.slug || shop?.id || user?.shop?.id || ''}
+          shopName={shop?.name || user?.shop?.name || 'Ma boutique'}
+        />
+      )}
     </motion.div>
   );
 }

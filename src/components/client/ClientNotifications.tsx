@@ -26,6 +26,7 @@ import {
   Loader2,
   Filter,
   BellOff,
+  ShoppingBag,
 } from 'lucide-react';
 
 const containerVariants = {
@@ -38,7 +39,7 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] } },
 };
 
 const notifVariants = {
@@ -73,6 +74,9 @@ function getNotificationIcon(type: string) {
     case 'MESSAGE': return MessageCircle;
     case 'SYSTEM': return Shield;
     case 'PROMOTION': return Tag;
+    case 'RESTOCK': return Bell;
+    case 'STOCK_ALERT': return Bell;
+    case 'NEW_PRODUCT': return ShoppingBag;
     case 'INFO': default: return Info;
   }
 }
@@ -83,6 +87,9 @@ function getNotificationColor(type: string) {
     case 'MESSAGE': return 'from-sky-400 to-sky-600';
     case 'SYSTEM': return 'from-orange-400 to-orange-600';
     case 'PROMOTION': return 'from-pink-400 to-pink-600';
+    case 'RESTOCK': return 'from-amber-400 to-amber-600';
+    case 'STOCK_ALERT': return 'from-red-400 to-red-600';
+    case 'NEW_PRODUCT': return 'from-teal-400 to-emerald-600';
     case 'INFO': default: return 'from-teal-400 to-teal-600';
   }
 }
@@ -94,6 +101,9 @@ function getNotificationBg(type: string, isRead: boolean) {
     case 'MESSAGE': return 'bg-sky-50/50 dark:bg-sky-900/10 border-l-sky-500';
     case 'SYSTEM': return 'bg-orange-50/50 dark:bg-orange-900/10 border-l-orange-500';
     case 'PROMOTION': return 'bg-pink-50/50 dark:bg-pink-900/10 border-l-pink-500';
+    case 'RESTOCK': return 'bg-amber-50/50 dark:bg-amber-900/10 border-l-amber-500';
+    case 'STOCK_ALERT': return 'bg-red-50/50 dark:bg-red-900/10 border-l-red-500';
+    case 'NEW_PRODUCT': return 'bg-emerald-50/50 dark:bg-emerald-900/10 border-l-emerald-500';
     case 'INFO': default: return 'bg-teal-50/50 dark:bg-teal-900/10 border-l-teal-500';
   }
 }
@@ -104,6 +114,9 @@ function getTypeLabel(type: string) {
     case 'MESSAGE': return 'Message';
     case 'SYSTEM': return 'Système';
     case 'PROMOTION': return 'Promotion';
+    case 'RESTOCK': return 'Réassort';
+    case 'STOCK_ALERT': return 'Alerte Stock';
+    case 'NEW_PRODUCT': return 'Nouveau Produit';
     case 'INFO': default: return 'Info';
   }
 }

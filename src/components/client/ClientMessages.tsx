@@ -40,7 +40,7 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 10 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] } },
 };
 
 export default function ClientMessages() {
@@ -155,6 +155,7 @@ export default function ClientMessages() {
       id: partnerId,
       name: conversations.find((c) => c.id === partnerId)?.name || '',
       email: '',
+      role: 'VENDOR',
       isActive: true,
       createdAt: '',
     });

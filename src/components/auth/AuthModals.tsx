@@ -3,6 +3,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
+import { AFRICAN_COUNTRIES, getCitiesByCountry } from '@/lib/african-countries';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -52,11 +53,6 @@ import {
   XCircle,
 } from 'lucide-react';
 
-// ---- Countries list ----
-const COUNTRIES = [
-  'RD Congo',
-];
-
 const SHOP_CATEGORIES = [
   { value: 'electronique', label: 'Électronique' },
   { value: 'mode', label: 'Mode & Vêtements' },
@@ -67,12 +63,6 @@ const SHOP_CATEGORIES = [
   { value: 'livres', label: 'Livres & Médias' },
   { value: 'services', label: 'Services' },
   { value: 'autres', label: 'Autres' },
-];
-
-const DRC_CITIES = [
-  'Kinshasa', 'Lubumbashi', 'Mbuji-Mayi', 'Kananga', 'Kisangani',
-  'Goma', 'Bukavu', 'Tshikapa', 'Kikwit', 'Matadi',
-  'Mbandaka', 'Likasi', 'Kalemie', 'Uvira', 'Beni',
 ];
 
 // ---- Password strength ----
@@ -636,6 +626,7 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
   const [avatar, setAvatar] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [phoneCode, setPhoneCode] = useState('+243');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -643,7 +634,8 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
   // Step 2: Address
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
-  const [country, setCountry] = useState('RD Congo');
+  const [country, setCountry] = useState('RDC');
+  const cities = getCitiesByCountry(country);
 
   // Step 3: Shop info (vendor only)
   const [shopName, setShopName] = useState('');
@@ -652,7 +644,8 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
   const [shopDescription, setShopDescription] = useState('');
   const [shopAddress, setShopAddress] = useState('');
   const [shopCity, setShopCity] = useState('');
-  const [shopCountry, setShopCountry] = useState('RD Congo');
+  const [shopCountry, setShopCountry] = useState('RDC');
+  const shopCities = getCitiesByCountry(shopCountry);
 
   const passwordStrength = getPasswordStrength(password);
 
@@ -763,7 +756,7 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
           password,
           name: name.trim(),
           avatar: avatar || undefined,
-          phone: phone.trim() || undefined,
+          phone: phone.trim() ? `${phoneCode}${phone.trim().replace(/\s/g, '')}` : undefined,
           address: address.trim() || undefined,
           city: city.trim() || undefined,
           country,
@@ -798,11 +791,11 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
           email: email.trim().toLowerCase(),
           password,
           name: name.trim(),
-          phone: phone.trim() || undefined,
           address: address.trim() || undefined,
           city: city.trim() || undefined,
           country,
           role: 'VENDOR',
+          phone: phone.trim() ? `${phoneCode}${phone.trim().replace(/\s/g, '')}` : undefined,
           shopName: shopName.trim(),
           shopLogo: shopLogo || undefined,
           shopCategory: shopCategory || undefined,
@@ -978,19 +971,20 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
     setAvatar('');
     setEmail('');
     setPhone('');
+    setPhoneCode('+243');
     setPassword('');
     setConfirmPassword('');
     setShowPassword(false);
     setAddress('');
     setCity('');
-    setCountry('RD Congo');
+    setCountry('RDC');
     setShopName('');
     setShopLogo('');
     setShopCategory('');
     setShopDescription('');
     setShopAddress('');
     setShopCity('');
-    setShopCountry('RD Congo');
+    setShopCountry('RDC');
     setError('');
     setLoading(false);
     setIsSubmitting(false);
@@ -1182,14 +1176,22 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
                         </div>
                       </div>
 
-                      {/* Phone with +243 prefix */}
+                      {/* Phone with country code selector */}
                       <div className="space-y-2">
                         <Label htmlFor="reg-phone" className="text-sm font-medium">Téléphone</Label>
                         <div className="flex gap-2">
-                          <div className="flex items-center gap-1.5 px-3 h-10 rounded-md border border-input bg-muted/50 text-sm font-medium text-muted-foreground shrink-0">
-                            <Phone className="h-3.5 w-3.5" />
-                            +243
-                          </div>
+                          <Select value={phoneCode} onValueChange={setPhoneCode}>
+                            <SelectTrigger className="w-[140px] h-10 shrink-0">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-60">
+                              {AFRICAN_COUNTRIES.map((c) => (
+                                <SelectItem key={c.code} value={c.code}>
+                                  {c.code} {c.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <Input
                             id="reg-phone"
                             type="tel"
@@ -1200,7 +1202,7 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
                               setPhone(val);
                             }}
                             className="flex-1 h-10"
-                            maxLength={12}
+                            maxLength={15}
                           />
                         </div>
                       </div>
@@ -1327,8 +1329,8 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
                             <SelectTrigger className="h-10">
                               <SelectValue placeholder="Sélectionner" />
                             </SelectTrigger>
-                            <SelectContent>
-                              {DRC_CITIES.map((c) => (
+                            <SelectContent className="max-h-60">
+                              {cities.map((c) => (
                                 <SelectItem key={c} value={c}>{c}</SelectItem>
                               ))}
                               <SelectItem value="Autre">Autre ville</SelectItem>
@@ -1344,13 +1346,13 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="reg-country" className="text-sm font-medium">Pays</Label>
-                          <Select value={country} onValueChange={setCountry}>
+                          <Select value={country} onValueChange={(v) => { setCountry(v); setCity(''); }}>
                             <SelectTrigger className="h-10">
                               <SelectValue placeholder="Sélectionner" />
                             </SelectTrigger>
-                            <SelectContent>
-                              {COUNTRIES.map((c) => (
-                                <SelectItem key={c} value={c}>{c}</SelectItem>
+                            <SelectContent className="max-h-60">
+                              {AFRICAN_COUNTRIES.map((c) => (
+                                <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -1444,20 +1446,20 @@ function RegisterModal({ open, onOpenChange }: { open: boolean; onOpenChange: (o
                             <SelectTrigger className="h-9 text-sm">
                               <SelectValue placeholder="Ville" />
                             </SelectTrigger>
-                            <SelectContent>
-                              {DRC_CITIES.map((c) => (
+                            <SelectContent className="max-h-60">
+                              {shopCities.map((c) => (
                                 <SelectItem key={c} value={c}>{c}</SelectItem>
                               ))}
                               <SelectItem value="Autre">Autre ville</SelectItem>
                             </SelectContent>
                           </Select>
-                          <Select value={shopCountry} onValueChange={setShopCountry}>
+                          <Select value={shopCountry} onValueChange={(v) => { setShopCountry(v); setShopCity(''); }}>
                             <SelectTrigger className="h-9 text-sm">
                               <SelectValue placeholder="Pays" />
                             </SelectTrigger>
-                            <SelectContent>
-                              {COUNTRIES.map((c) => (
-                                <SelectItem key={c} value={c}>{c}</SelectItem>
+                            <SelectContent className="max-h-60">
+                              {AFRICAN_COUNTRIES.map((c) => (
+                                <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>

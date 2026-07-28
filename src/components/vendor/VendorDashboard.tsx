@@ -33,8 +33,11 @@ import {
   Crown,
   Users,
   CalendarDays,
+  QrCode,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import ShopQRModal from '@/components/vendor/ShopQRModal';
+import StockAlertPanel from '@/components/vendor/StockAlertPanel';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -216,6 +219,7 @@ export default function VendorDashboard() {
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
   const [platformVendors, setPlatformVendors] = useState<number | null>(null);
   const [vendorsUpdatedAt, setVendorsUpdatedAt] = useState<Date | null>(null);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
 
   // Ensure vendor shop is synced with store on mount
   useEffect(() => {
@@ -719,7 +723,16 @@ export default function VendorDashboard() {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                <Button
+                  onClick={() => setQrModalOpen(true)}
+                  className="bg-emerald-500/30 hover:bg-emerald-500/40 text-white border-white/30 backdrop-blur-sm"
+                  variant="outline"
+                  size="sm"
+                >
+                  <QrCode className="mr-2 h-4 w-4" />
+                  QR Code boutique
+                </Button>
                 <Button
                   onClick={() => setCurrentView('vendor-shop-settings')}
                   className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm"
@@ -746,6 +759,11 @@ export default function VendorDashboard() {
             </div>
           </CardContent>
         </Card>
+      </motion.div>
+
+      {/* Stock Management & Alerts Panel */}
+      <motion.div variants={itemVariants}>
+        <StockAlertPanel />
       </motion.div>
 
       {/* Stats Cards with Animated Counters */}
@@ -958,6 +976,16 @@ export default function VendorDashboard() {
           ))}
         </div>
       </motion.div>
+
+      {/* Shop QR Code Modal */}
+      {user?.shop && (
+        <ShopQRModal
+          open={qrModalOpen}
+          onClose={() => setQrModalOpen(false)}
+          shopSlug={user.shop.slug || user.shop.id}
+          shopName={user.shop.name}
+        />
+      )}
     </motion.div>
   );
 }
