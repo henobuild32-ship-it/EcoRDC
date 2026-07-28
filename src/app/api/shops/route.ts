@@ -80,6 +80,28 @@ export async function GET(request: NextRequest) {
         decodedSlug = slug.trim();
       }
 
+      const normalizedInput = decodedSlug
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .trim()
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-');
+
+      const singleShopInclude = {
+        owner: { select: { id: true, name: true, email: true, phone: true } },
+        products: {
+          where: { isActive: true },
+          orderBy: { createdAt: 'desc' as const },
+          include: {
+            shop: { select: { id: true, name: true, logo: true, slug: true } },
+          },
+        },
+        promotions: { where: { isActive: true } },
+        _count: { select: { products: true, followers: true } },
+      };
+
       let shop = await db.shop.findFirst({
         where: {
           OR: [
@@ -88,22 +110,35 @@ export async function GET(request: NextRequest) {
             { ownerId: decodedSlug },
           ],
         },
-        include: {
-          owner: { select: { id: true, name: true, email: true, phone: true } },
-          products: {
-            where: { isActive: true },
-            orderBy: { createdAt: 'desc' },
-            include: {
-              shop: { select: { id: true, name: true, logo: true, slug: true } },
-            },
-          },
-          promotions: { where: { isActive: true } },
-          _count: { select: { products: true, followers: true } },
-        },
+        include: singleShopInclude,
       });
 
+      if (!shop && normalizedInput) {
+        shop = await db.shop.findFirst({
+          where: {
+            OR: [
+              { slug: { equals: normalizedInput, mode: 'insensitive' } },
+              { slug: { contains: normalizedInput, mode: 'insensitive' } },
+            ],
+          },
+          include: singleShopInclude,
+        }).catch(() => null);
+      }
+
       if (!shop) {
-        // Fallback: check if slug is a productId
+        shop = await db.shop.findFirst({
+          where: {
+            OR: [
+              { name: { equals: decodedSlug, mode: 'insensitive' } },
+              { name: { contains: decodedSlug, mode: 'insensitive' } },
+              { name: { contains: decodedSlug.replace(/-/g, ' '), mode: 'insensitive' } },
+            ],
+          },
+          include: singleShopInclude,
+        }).catch(() => null);
+      }
+
+      if (!shop) {
         try {
           const product = await db.product.findUnique({
             where: { id: decodedSlug },
@@ -112,18 +147,7 @@ export async function GET(request: NextRequest) {
           if (product?.shopId) {
             shop = await db.shop.findUnique({
               where: { id: product.shopId },
-              include: {
-                owner: { select: { id: true, name: true, email: true, phone: true } },
-                products: {
-                  where: { isActive: true },
-                  orderBy: { createdAt: 'desc' },
-                  include: {
-                    shop: { select: { id: true, name: true, logo: true, slug: true } },
-                  },
-                },
-                promotions: { where: { isActive: true } },
-                _count: { select: { products: true, followers: true } },
-              },
+              include: singleShopInclude,
             });
           }
         } catch {}

@@ -961,12 +961,12 @@ export default function LandingPage() {
                 {/* Stats counters */}
                 <div className="flex items-center justify-center gap-8 mb-8">
                   <div className="text-center">
-                    <div className="text-2xl sm:text-3xl font-bold">0+</div>
+                    <div className="text-2xl sm:text-3xl font-bold">+24K</div>
                     <div className="text-emerald-200 text-xs sm:text-sm">Boutiques</div>
                   </div>
                   <div className="h-8 w-px bg-white/20" />
                   <div className="text-center">
-                    <div className="text-2xl sm:text-3xl font-bold">0+</div>
+                    <div className="text-2xl sm:text-3xl font-bold">+100K</div>
                     <div className="text-emerald-200 text-xs sm:text-sm">Produits</div>
                   </div>
                   <div className="h-8 w-px bg-white/20" />

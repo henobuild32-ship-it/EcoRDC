@@ -29,6 +29,35 @@ export default async function ShopPage({ params }: Props) {
 
   let shop: any = null;
 
+  const shopInclude = {
+    owner: { select: { id: true, name: true, email: true, phone: true } },
+    products: {
+      where: { isActive: true },
+      orderBy: { createdAt: 'desc' as const },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        price: true,
+        images: true,
+        category: true,
+        stock: true,
+        isActive: true,
+        createdAt: true,
+      },
+    },
+    _count: { select: { products: true, followers: true } },
+  };
+
+  const normalizedInput = slug
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+
   try {
     // 1. Search shop by slug (case-insensitive), shop ID, or owner ID
     shop = await db.shop.findFirst({
@@ -39,28 +68,37 @@ export default async function ShopPage({ params }: Props) {
           { ownerId: slug },
         ],
       },
-      include: {
-        owner: { select: { id: true, name: true, email: true, phone: true } },
-        products: {
-          where: { isActive: true },
-          orderBy: { createdAt: 'desc' },
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            price: true,
-            images: true,
-            category: true,
-            stock: true,
-            isActive: true,
-            createdAt: true,
-          },
-        },
-        _count: { select: { products: true, followers: true } },
-      },
+      include: shopInclude,
     });
 
-    // 2. Fallback: If no shop found directly, check if slug is a product ID
+    // 2. Search by normalized slug if different
+    if (!shop && normalizedInput) {
+      shop = await db.shop.findFirst({
+        where: {
+          OR: [
+            { slug: { equals: normalizedInput, mode: 'insensitive' } },
+            { slug: { contains: normalizedInput, mode: 'insensitive' } },
+          ],
+        },
+        include: shopInclude,
+      }).catch(() => null);
+    }
+
+    // 3. Search by shop name (case-insensitive equals or contains)
+    if (!shop) {
+      shop = await db.shop.findFirst({
+        where: {
+          OR: [
+            { name: { equals: slug, mode: 'insensitive' } },
+            { name: { contains: slug, mode: 'insensitive' } },
+            { name: { contains: slug.replace(/-/g, ' '), mode: 'insensitive' } },
+          ],
+        },
+        include: shopInclude,
+      }).catch(() => null);
+    }
+
+    // 4. Fallback: If no shop found directly, check if slug is a product ID
     if (!shop) {
       const product = await db.product.findUnique({
         where: { id: slug },
@@ -70,54 +108,23 @@ export default async function ShopPage({ params }: Props) {
       if (product?.shopId) {
         shop = await db.shop.findUnique({
           where: { id: product.shopId },
-          include: {
-            owner: { select: { id: true, name: true, email: true, phone: true } },
-            products: {
-              where: { isActive: true },
-              orderBy: { createdAt: 'desc' },
-              select: {
-                id: true,
-                name: true,
-                description: true,
-                price: true,
-                images: true,
-                category: true,
-                stock: true,
-                isActive: true,
-                createdAt: true,
-              },
-            },
-            _count: { select: { products: true, followers: true } },
-          },
+          include: shopInclude,
         }).catch(() => null);
       }
     }
 
-    // 3. Fallback: Try slugified version if user copied a space-filled name
+    // 5. Fallback: Try prefix matching on slug
     if (!shop) {
-      const hyphenatedSlug = slug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-      if (hyphenatedSlug && hyphenatedSlug !== slug) {
+      const prefix = normalizedInput.split('-')[0];
+      if (prefix && prefix.length >= 3) {
         shop = await db.shop.findFirst({
-          where: { slug: { equals: hyphenatedSlug, mode: 'insensitive' } },
-          include: {
-            owner: { select: { id: true, name: true, email: true, phone: true } },
-            products: {
-              where: { isActive: true },
-              orderBy: { createdAt: 'desc' },
-              select: {
-                id: true,
-                name: true,
-                description: true,
-                price: true,
-                images: true,
-                category: true,
-                stock: true,
-                isActive: true,
-                createdAt: true,
-              },
-            },
-            _count: { select: { products: true, followers: true } },
+          where: {
+            OR: [
+              { slug: { startsWith: prefix, mode: 'insensitive' } },
+              { name: { startsWith: prefix, mode: 'insensitive' } },
+            ],
           },
+          include: shopInclude,
         }).catch(() => null);
       }
     }

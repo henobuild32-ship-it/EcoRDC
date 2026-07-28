@@ -38,11 +38,15 @@ export function generateInvoiceNumber(): string {
 }
 
 export function generateShopSlug(name: string): string {
+  if (!name) return 'boutique';
   return name
     .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
-    .substring(0, 40);
+    .substring(0, 50) || 'boutique';
 }
