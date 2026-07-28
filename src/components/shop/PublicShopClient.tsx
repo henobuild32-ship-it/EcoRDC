@@ -145,7 +145,7 @@ export function PublicShopClient({ shop }: { shop: ShopData }) {
                 )}
                 <span className="flex items-center gap-1">
                   <Package className="h-3.5 w-3.5 shrink-0" />
-                  {shop._count.products} produit{shop._count.products !== 1 ? 's' : ''}
+                  {shop._count?.products ?? shop.products?.length ?? 0} produit{(shop._count?.products ?? shop.products?.length ?? 0) !== 1 ? 's' : ''}
                 </span>
               </div>
 
@@ -326,7 +326,7 @@ export function PublicShopClient({ shop }: { shop: ShopData }) {
               <Button
                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
                 onClick={() => {
-                  window.location.href = '/?contact=' + shop.owner.id;
+                  window.location.href = '/?contact=' + (shop.owner?.id || '');
                 }}
               >
                 <User className="h-4 w-4 mr-2" />
@@ -336,7 +336,7 @@ export function PublicShopClient({ shop }: { shop: ShopData }) {
                 variant="outline"
                 className="w-full"
                 onClick={() => {
-                  window.location.href = '/?register-client=1&contact=' + shop.owner.id;
+                  window.location.href = '/?register-client=1&contact=' + (shop.owner?.id || '');
                 }}
               >
                 <Lock className="h-4 w-4 mr-2" />
@@ -344,7 +344,7 @@ export function PublicShopClient({ shop }: { shop: ShopData }) {
               </Button>
             </div>
 
-            {shop.owner.phone && (
+            {shop.owner?.phone && (
               <div className="mt-4 pt-4 border-t text-center">
                 <p className="text-xs text-muted-foreground mb-2">Ou appelez directement</p>
                 <a

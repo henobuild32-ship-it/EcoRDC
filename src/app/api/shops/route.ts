@@ -73,8 +73,21 @@ export async function GET(request: NextRequest) {
 
     // Get single shop by slug
     if (slug) {
-      const shop = await db.shop.findFirst({
-        where: { OR: [{ slug }, { id: slug }] },
+      let decodedSlug = slug;
+      try {
+        decodedSlug = decodeURIComponent(slug).trim();
+      } catch {
+        decodedSlug = slug.trim();
+      }
+
+      let shop = await db.shop.findFirst({
+        where: {
+          OR: [
+            { slug: { equals: decodedSlug, mode: 'insensitive' } },
+            { id: decodedSlug },
+            { ownerId: decodedSlug },
+          ],
+        },
         include: {
           owner: { select: { id: true, name: true, email: true, phone: true } },
           products: {
@@ -88,6 +101,34 @@ export async function GET(request: NextRequest) {
           _count: { select: { products: true, followers: true } },
         },
       });
+
+      if (!shop) {
+        // Fallback: check if slug is a productId
+        try {
+          const product = await db.product.findUnique({
+            where: { id: decodedSlug },
+            select: { shopId: true },
+          });
+          if (product?.shopId) {
+            shop = await db.shop.findUnique({
+              where: { id: product.shopId },
+              include: {
+                owner: { select: { id: true, name: true, email: true, phone: true } },
+                products: {
+                  where: { isActive: true },
+                  orderBy: { createdAt: 'desc' },
+                  include: {
+                    shop: { select: { id: true, name: true, logo: true, slug: true } },
+                  },
+                },
+                promotions: { where: { isActive: true } },
+                _count: { select: { products: true, followers: true } },
+              },
+            });
+          }
+        } catch {}
+      }
+
       if (!shop) {
         return NextResponse.json({ error: 'Boutique non trouvée' }, { status: 404 });
       }
