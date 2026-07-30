@@ -39,6 +39,8 @@ const typeIcons: Record<string, { icon: React.ComponentType<{ className?: string
   REVIEW: { icon: Star, color: 'text-yellow-500', bg: 'bg-yellow-100 dark:bg-yellow-900/30' },
   SHIPPING: { icon: Truck, color: 'text-purple-500', bg: 'bg-purple-100 dark:bg-purple-900/30' },
   PAYMENT: { icon: CreditCard, color: 'text-emerald-500', bg: 'bg-emerald-100 dark:bg-emerald-900/30' },
+  STOCK_ALERT: { icon: AlertTriangle, color: 'text-orange-500', bg: 'bg-orange-100 dark:bg-orange-900/30' },
+  RESTOCK: { icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-100 dark:bg-emerald-900/30' },
   SYSTEM: { icon: Info, color: 'text-sky-500', bg: 'bg-sky-100 dark:bg-sky-900/30' },
 };
 

@@ -28,7 +28,7 @@ import {
   QrCode,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import ShopQRModal from '@/components/vendor/ShopQRModal';
+import { ShopQRCode } from '@/components/client/ShopQRCode';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -56,7 +56,7 @@ export default function ClientShopView() {
   const [shopPromotions, setShopPromotions] = useState<Record<string, { discount: number; title: string }>>({});
   const [restockNotifs, setRestockNotifs] = useState<Set<string>>(new Set());
   const [restockLoading, setRestockLoading] = useState<string | null>(null);
-  const [qrModalOpen, setQrModalOpen] = useState(false);
+
 
   useEffect(() => {
     if (!selectedShop?.slug && !selectedShop?.id) return;
@@ -454,15 +454,7 @@ export default function ClientShopView() {
               )}
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              <Button
-                onClick={() => setQrModalOpen(true)}
-                variant="outline"
-                size="sm"
-                className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-900/30"
-              >
-                <QrCode className="mr-2 h-4 w-4" />
-                QR Code
-              </Button>
+              <ShopQRCode shopId={shop.id} shopName={shop.name} shopSlug={shop.slug} />
               <Button
                 onClick={handleShare}
                 variant="outline"
@@ -652,15 +644,6 @@ export default function ClientShopView() {
         )}
       </motion.div>
 
-      {/* Shop QR Modal */}
-      {shop && (
-        <ShopQRModal
-          open={qrModalOpen}
-          onClose={() => setQrModalOpen(false)}
-          shopSlug={shop.slug || shop.id}
-          shopName={shop.name}
-        />
-      )}
     </motion.div>
   );
 }

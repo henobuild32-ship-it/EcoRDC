@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { RestockSubscribeButton } from '@/components/client/RestockSubscribeButton';
 import {
   Dialog,
   DialogContent,
@@ -39,6 +40,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   Sparkles,
+  Image,
   Scale,
   Ruler,
   Weight,
@@ -194,15 +196,22 @@ export function ProductDetail({
             <div className="space-y-3">
               <div className="relative group aspect-square rounded-xl overflow-hidden bg-muted">
                 {images.length > 0 ? (
-                  <img src={images[selectedImage]} alt={product.name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110 cursor-crosshair" />
+                  <>
+                    <img src={images[selectedImage]} alt={product.name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110 cursor-pointer" onClick={() => setShowFullscreen(true)} />
+                    {images.length > 1 && (
+                      <div className="absolute inset-0 flex items-end justify-center pb-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                        <span className="bg-black/50 text-white text-[10px] px-3 py-1 rounded-full flex items-center gap-1"><Image className="h-3 w-3" />{selectedImage + 1}/{images.length}</span>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted-foreground"><Package className="h-16 w-16" /></div>
                 )}
-                <button onClick={() => setShowFullscreen(true)} className="absolute top-3 right-3 h-8 w-8 rounded-full bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Expand className="h-4 w-4" /></button>
+                <button type="button" onClick={() => setShowFullscreen(true)} className="absolute top-3 right-3 h-8 w-8 rounded-full bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"><Expand className="h-4 w-4" /></button>
                 {images.length > 1 && (
                   <>
-                    <button onClick={() => setSelectedImage(Math.max(0, selectedImage - 1))} className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><ChevronLeft className="h-4 w-4" /></button>
-                    <button onClick={() => setSelectedImage(Math.min(images.length - 1, selectedImage + 1))} className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><ChevronRight className="h-4 w-4" /></button>
+                    <button type="button" onClick={() => setSelectedImage(Math.max(0, selectedImage - 1))} className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"><ChevronLeft className="h-4 w-4" /></button>
+                    <button type="button" onClick={() => setSelectedImage(Math.min(images.length - 1, selectedImage + 1))} className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"><ChevronRight className="h-4 w-4" /></button>
                   </>
                 )}
                 {discount > 0 && (
@@ -214,6 +223,9 @@ export function ProductDetail({
                   <Badge className="absolute top-3 right-12 bg-amber-500 text-white border-0 text-xs flex items-center gap-1"><Sparkles className="h-3 w-3" />Promo</Badge>
                 )}
               </div>
+              {images.length > 1 && (
+                <p className="text-[11px] text-muted-foreground text-center cursor-pointer" onClick={() => setShowFullscreen(true)}>Cliquez sur la photo pour voir les {images.length} photos</p>
+              )}
               {images.length > 1 && (
                 <div className="flex gap-2 overflow-x-auto pb-1">
                   {images.map((img, i) => (
@@ -273,6 +285,7 @@ export function ProductDetail({
               </div>
               {product.soldCount > 0 && <p className="text-xs text-muted-foreground">{product.soldCount} vendu(s)</p>}
               {product.restockDate && !inStock && <p className="text-xs text-muted-foreground">Réapprovisionnement prévu le {new Date(product.restockDate).toLocaleDateString('fr-FR')}</p>}
+              {!inStock && <RestockSubscribeButton productId={product.id} />}
 
               <Separator />
 
