@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -9,7 +9,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { X, ChevronLeft, ChevronRight, Check, BookOpen, SkipForward } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Check, BookOpen, SkipForward, ArrowDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface OnboardingStep {
@@ -42,6 +42,23 @@ export function OnboardingWizard({
   subtitle,
 }: OnboardingWizardProps) {
   const [index, setIndex] = useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollDown, setCanScrollDown] = useState(false);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const remaining = el.scrollHeight - el.scrollTop - el.clientHeight;
+    setCanScrollDown(remaining > 8);
+  }, []);
+
+  useEffect(() => {
+    if (open) handleScroll();
+  }, [open, index, handleScroll]);
+
+  const scrollToBottom = useCallback(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+  }, []);
 
   const handleClose = useCallback(() => {
     onOpenChange(false);
@@ -133,17 +150,37 @@ export function OnboardingWizard({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-5">
-          <div className="flex items-start gap-3 mb-4">
-            <div className="h-9 w-9 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center shrink-0 text-emerald-600">
-              {step.icon}
+        <div className="relative flex-1 min-h-0 overflow-hidden">
+          <div
+            ref={scrollRef}
+            onScroll={handleScroll}
+            className="h-full min-h-0 overflow-y-auto overscroll-contain px-6 py-5"
+          >
+            <div className="flex items-start gap-3 mb-4">
+              <div className="h-9 w-9 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center shrink-0 text-emerald-600">
+                {step.icon}
+              </div>
+              <div>
+                <h3 className="font-bold text-lg leading-tight">{step.title}</h3>
+                {step.subtitle && <p className="text-sm text-muted-foreground mt-0.5">{step.subtitle}</p>}
+              </div>
             </div>
-            <div>
-              <h3 className="font-bold text-lg leading-tight">{step.title}</h3>
-              {step.subtitle && <p className="text-sm text-muted-foreground mt-0.5">{step.subtitle}</p>}
-            </div>
+            <div className="text-sm space-y-3">{step.content}</div>
+            <div className="h-4" />
           </div>
-          <div className="text-sm space-y-3">{step.content}</div>
+
+          {/* Scroll down hint */}
+          {canScrollDown && (
+            <button
+              type="button"
+              onClick={scrollToBottom}
+              className="absolute bottom-2 right-2 flex items-center gap-1.5 rounded-full bg-background/95 border shadow-md px-3 py-1.5 text-xs font-medium text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-colors z-10"
+              aria-label="Faire défiler vers le bas"
+            >
+              <ArrowDown className="h-3.5 w-3.5 animate-bounce" />
+              Faire défiler
+            </button>
+          )}
         </div>
 
         {/* Footer */}

@@ -69,7 +69,7 @@ const itemVariants = {
 };
 
 export default function ClientProfile() {
-  const { user, token, setUser, setCurrentView, logout } = useAppStore();
+  const { user, token, setUser, setCurrentView, logout, setShowOnboarding } = useAppStore();
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [phone, setPhone] = useState(user?.phone || '');
@@ -292,6 +292,10 @@ export default function ClientProfile() {
         </div>
         <Button variant="outline" size="icon" onClick={() => setGuideOpen(true)} className="shrink-0" title="Guide d'utilisation">
           <BookOpen className="h-5 w-5" />
+        </Button>
+        <Button variant="outline" onClick={() => setShowOnboarding(true)} className="shrink-0 gap-1.5" title="Revoir la présentation de l'application">
+          <Sparkles className="h-4 w-4" />
+          <span className="hidden sm:inline">Revoir la présentation</span>
         </Button>
       </motion.div>
       <ClientGuide open={guideOpen} onOpenChange={setGuideOpen} />

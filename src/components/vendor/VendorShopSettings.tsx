@@ -51,6 +51,7 @@ import {
   Check,
   Share2,
   BookOpen,
+  Sparkles,
   QrCode,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -85,7 +86,7 @@ const shopCategories = [
 // cities removed — dynamic from AFRICAN_COUNTRIES
 
 export default function VendorShopSettings() {
-  const { user, token, setCurrentView, setUser } = useAppStore();
+  const { user, token, setCurrentView, setUser, setShowOnboarding } = useAppStore();
   const [shop, setShop] = useState<Shop | null>(null);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
@@ -452,6 +453,10 @@ export default function VendorShopSettings() {
         </div>
         <Button variant="outline" size="icon" onClick={() => setGuideOpen(true)} className="shrink-0" title="Guide d'utilisation">
           <BookOpen className="h-5 w-5" />
+        </Button>
+        <Button variant="outline" onClick={() => setShowOnboarding(true)} className="shrink-0 gap-1.5" title="Revoir la présentation de l'application">
+          <Sparkles className="h-4 w-4" />
+          <span className="hidden sm:inline">Revoir la présentation</span>
         </Button>
       </motion.div>
       <VendorGuide open={guideOpen} onOpenChange={setGuideOpen} />

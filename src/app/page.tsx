@@ -199,12 +199,15 @@ function AppContent() {
 
   // Auto-open onboarding for CLIENT/VENDOR accounts that haven't seen it yet.
   // Covers new accounts (right after registration) and existing accounts (once).
+  // The flag is set at trigger time so it can only ever auto-open a single time,
+  // even if the user closes the tab or navigates away while it is displayed.
   useEffect(() => {
     if (!user) return;
     if (user.role !== 'CLIENT' && user.role !== 'VENDOR') return;
     if (showOnboarding) return;
     if (currentView === 'landing' || currentView === 'login' || currentView === 'register') return;
     if (!shouldShowOnboarding(user)) return;
+    try { localStorage.setItem(`${ONBOARDING_FLAG}_${user.role}`, '1'); } catch {}
     // Small delay so the dashboard renders behind the dialog
     const t = setTimeout(() => setShowOnboarding(true), 700);
     return () => clearTimeout(t);
