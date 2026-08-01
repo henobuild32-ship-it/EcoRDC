@@ -7,6 +7,7 @@ import LandingPage from '@/components/landing/LandingPage';
 import AuthModals from '@/components/auth/AuthModals';
 import AppHeader from '@/components/layout/AppHeader';
 import MobileBottomNav from '@/components/layout/MobileBottomNav';
+import { AppOnboarding } from '@/components/onboarding/AppOnboarding';
 
 // Client components
 import ClientDashboard from '@/components/client/ClientDashboard';
@@ -52,6 +53,19 @@ import AdminSubscriptions from '@/components/admin/AdminSubscriptions';
 import AdminPayments from '@/components/admin/AdminPayments';
 import AdminReports from '@/components/admin/AdminReports';
 import AdminVerification from '@/components/admin/AdminVerification';
+
+// Onboarding trigger
+const ONBOARDING_FLAG = 'ecordc_onboarding_v1_seen';
+
+function shouldShowOnboarding(user: { id: string; role: string }): boolean {
+  if (user.role !== 'CLIENT' && user.role !== 'VENDOR') return false;
+  const key = `${ONBOARDING_FLAG}_${user.role}`;
+  try {
+    return !localStorage.getItem(key);
+  } catch {
+    return true;
+  }
+}
 
 // PWA install prompt
 function PWAInstallPrompt() {
@@ -134,7 +148,7 @@ function AppFooter() {
 }
 
 function AppContent() {
-  const { currentView, user, setUser, setCurrentView, refreshUser } = useAppStore();
+  const { currentView, user, setUser, setCurrentView, refreshUser, showOnboarding, setShowOnboarding } = useAppStore();
   const { touchAdminActivity, isAdminSessionExpired, adminLogout } = useAppStore();
 
   // Handle payment redirect from GeniusPay checkout
@@ -182,6 +196,19 @@ function AppContent() {
       }
     }
   }, []);
+
+  // Auto-open onboarding for CLIENT/VENDOR accounts that haven't seen it yet.
+  // Covers new accounts (right after registration) and existing accounts (once).
+  useEffect(() => {
+    if (!user) return;
+    if (user.role !== 'CLIENT' && user.role !== 'VENDOR') return;
+    if (showOnboarding) return;
+    if (currentView === 'landing' || currentView === 'login' || currentView === 'register') return;
+    if (!shouldShowOnboarding(user)) return;
+    // Small delay so the dashboard renders behind the dialog
+    const t = setTimeout(() => setShowOnboarding(true), 700);
+    return () => clearTimeout(t);
+  }, [user?.id, user?.role, currentView, showOnboarding, setShowOnboarding]);
 
   // Admin inactivity auto-logout: track activity and check for expiry
   const isAdminView = currentView.startsWith('admin-');
@@ -308,6 +335,7 @@ function AppContent() {
       <MobileBottomNav />
       <AuthModals />
       <AdminAccess />
+      <AppOnboarding />
       <PWAInstallPrompt />
     </div>
   );

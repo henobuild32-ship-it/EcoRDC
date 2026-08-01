@@ -37,6 +37,13 @@ const categories = [
 
 const MAX_IMAGES = 30;
 
+const sanitizeDecimal = (value: string) => value.replace(/,/g, '.').replace(/[^\d.]/g, '');
+const sanitizeInteger = (value: string) => value.replace(/[^\d]/g, '');
+const parseDecimal = (value: string) => {
+  const n = parseFloat(value);
+  return isNaN(n) ? undefined : n;
+};
+
 export default function VendorAddProduct() {
   const { token, selectedProduct, setCurrentView } = useAppStore();
   const isEditing = !!selectedProduct;
@@ -93,10 +100,10 @@ export default function VendorAddProduct() {
     setSaving(true);
     try {
       const body = {
-        name, description, shortDescription, price: parseFloat(price),
-        compareAtPrice: compareAtPrice ? parseFloat(compareAtPrice) : undefined,
+        name, description, shortDescription, price: parseDecimal(price) ?? 0,
+        compareAtPrice: compareAtPrice ? parseDecimal(compareAtPrice) : undefined,
         sku, category, subcategory, brand, images: images.join(','), video,
-        stock: parseInt(stock) || 0, weight: weight ? parseFloat(weight) : undefined,
+        stock: parseInt(stock, 10) || 0, weight: weight ? parseDecimal(weight) : undefined,
         weightUnit, dimensions, material, origin, isActive: publish,
         ...(isEditing ? { productId: selectedProduct?.id } : {}),
       };
@@ -155,15 +162,15 @@ export default function VendorAddProduct() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="product-price">Prix (CDF) *</Label>
-              <Input id="product-price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0" min="0" step="100" />
+              <Input id="product-price" type="text" inputMode="decimal" value={price} onChange={(e) => setPrice(sanitizeDecimal(e.target.value))} placeholder="0" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="compare-price" className="flex items-center gap-1">Prix barré (CDF){discountPercent > 0 && <span className="text-xs text-emerald-600 font-normal ml-1">-{discountPercent}%</span>}</Label>
-              <Input id="compare-price" type="number" value={compareAtPrice} onChange={(e) => setCompareAtPrice(e.target.value)} placeholder="0" min="0" step="100" />
+              <Input id="compare-price" type="text" inputMode="decimal" value={compareAtPrice} onChange={(e) => setCompareAtPrice(sanitizeDecimal(e.target.value))} placeholder="0" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="product-stock">Stock</Label>
-              <Input id="product-stock" type="number" value={stock} onChange={(e) => setStock(e.target.value)} placeholder="0" min="0" />
+              <Input id="product-stock" type="text" inputMode="numeric" value={stock} onChange={(e) => setStock(sanitizeInteger(e.target.value))} placeholder="0" />
             </div>
           </div>
 
@@ -209,7 +216,7 @@ export default function VendorAddProduct() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="weight">Poids</Label>
-                  <Input id="weight" type="number" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="0" min="0" step="0.1" />
+                  <Input id="weight" type="text" inputMode="decimal" value={weight} onChange={(e) => setWeight(sanitizeDecimal(e.target.value))} placeholder="0" />
                 </div>
                 <div className="space-y-2">
                   <Label>Unité poids</Label>

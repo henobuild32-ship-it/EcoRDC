@@ -257,6 +257,10 @@ interface AppState {
   isAdminAccessOpen: boolean;
   setIsAdminAccessOpen: (open: boolean) => void;
 
+  // Onboarding
+  showOnboarding: boolean;
+  setShowOnboarding: (show: boolean) => void;
+
   // Cart icon admin access
   cartIconTapCount: number;
   incrementCartIconTap: () => boolean;
@@ -363,6 +367,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     return false;
   },
   resetCartIconTap: () => set({ cartIconTapCount: 0 }),
+
+  // Onboarding
+  showOnboarding: false,
+  setShowOnboarding: (show) => set({ showOnboarding: show }),
 
   // Admin session security - auto-logout after 15 minutes of inactivity
   adminLastActivity: Date.now(),
