@@ -119,6 +119,7 @@ export async function POST(request: NextRequest) {
 
     let totalAmount = 0;
     const orderItems: { productId: string; quantity: number; price: number }[] = [];
+    const previousStockMap: Record<string, number> = {};
 
     for (const item of items) {
       const product = await db.product.findUnique({ where: { id: item.productId } });
@@ -128,6 +129,7 @@ export async function POST(request: NextRequest) {
       if (product.stock < item.quantity) {
         return NextResponse.json({ error: `Stock insuffisant pour ${product.name}` }, { status: 400 });
       }
+      previousStockMap[product.id] = product.stock;
       const itemTotal = product.price * item.quantity;
       totalAmount += itemTotal;
       orderItems.push({
@@ -154,12 +156,43 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Decrease product stock
+    // Decrease product stock and check stock alerts
+    const threshold = shop.lowStockThreshold ?? 5;
     for (const item of orderItems) {
-      await db.product.update({
+      const previousStock = previousStockMap[item.productId] ?? 0;
+      const updated = await db.product.update({
         where: { id: item.productId },
         data: { stock: { decrement: item.quantity } },
       });
+      const newStock = updated.stock;
+
+      // Out of stock -> notify vendor
+      if (newStock === 0 && previousStock > 0) {
+        await db.notification.create({
+          data: {
+            userId: shop.ownerId,
+            title: '⚠️ Rupture de stock',
+            message: `Le produit "${updated.name}" est en rupture de stock. Réapprovisionnez-le pour continuer les ventes.`,
+            type: 'STOCK_ALERT',
+            link: '/vendor-products',
+            data: JSON.stringify({ productId: item.productId, stockLevel: 0 }),
+          },
+        });
+      }
+
+      // Low stock (just crossed below threshold) -> notify vendor
+      if (newStock > 0 && newStock <= threshold && previousStock > threshold) {
+        await db.notification.create({
+          data: {
+            userId: shop.ownerId,
+            title: '📦 Stock faible',
+            message: `Le produit "${updated.name}" a un stock faible (${newStock} unités restantes). Pensez à réapprovisionner.`,
+            type: 'STOCK_ALERT',
+            link: '/vendor-products',
+            data: JSON.stringify({ productId: item.productId, stockLevel: newStock }),
+          },
+        });
+      }
     }
 
     // Create notification for vendor

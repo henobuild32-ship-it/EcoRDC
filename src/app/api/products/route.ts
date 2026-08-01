@@ -257,7 +257,7 @@ export async function PUT(request: NextRequest) {
       if (newStock !== previousStock) {
         const shop = await db.shop.findUnique({
           where: { id: product.shopId },
-          select: { ownerId: true, name: true, lowStockThreshold: true },
+          select: { id: true, ownerId: true, name: true, lowStockThreshold: true, slug: true },
         });
         if (shop) {
           const threshold = shop.lowStockThreshold ?? 5;
@@ -311,7 +311,7 @@ export async function PUT(request: NextRequest) {
                   title: '✅ Produit disponible !',
                   message: `"${updated.name}" de la boutique ${shop.name} est de nouveau en stock !`,
                   type: 'RESTOCK',
-                  link: `/shop/${product.shopId}`,
+                  link: `/shop/${shop.slug || shop.id}`,
                   data: notifData,
                 })),
               });

@@ -117,28 +117,67 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Update product soldCount
+      // Update product soldCount and check stock alerts
+      const shopOwner = await db.shop.findUnique({
+        where: { id: shopId },
+        select: { ownerId: true, lowStockThreshold: true },
+      });
+      const threshold = shopOwner?.lowStockThreshold ?? 5;
+
       for (const item of orderItemsData) {
-        await db.product.update({
+        const previousStock = items.find((i) => i.product.id === item.productId)?.product.stock ?? 0;
+        const updated = await db.product.update({
           where: { id: item.productId },
           data: {
             soldCount: { increment: item.quantity },
             stock: { decrement: item.quantity },
           },
         });
+
+        const newStock = updated.stock;
+
+        // Out of stock -> notify vendor
+        if (newStock === 0 && previousStock > 0 && shopOwner?.ownerId) {
+          await db.notification.create({
+            data: {
+              userId: shopOwner.ownerId,
+              title: '⚠️ Rupture de stock',
+              message: `Le produit "${updated.name}" est en rupture de stock. Réapprovisionnez-le pour continuer les ventes.`,
+              type: 'STOCK_ALERT',
+              link: '/vendor-products',
+              data: JSON.stringify({ productId: item.productId, stockLevel: 0 }),
+            },
+          });
+        }
+
+        // Low stock (just crossed below threshold) -> notify vendor
+        if (newStock > 0 && newStock <= threshold && previousStock > threshold && shopOwner?.ownerId) {
+          await db.notification.create({
+            data: {
+              userId: shopOwner.ownerId,
+              title: '📦 Stock faible',
+              message: `Le produit "${updated.name}" a un stock faible (${newStock} unités restantes). Pensez à réapprovisionner.`,
+              type: 'STOCK_ALERT',
+              link: '/vendor-products',
+              data: JSON.stringify({ productId: item.productId, stockLevel: newStock }),
+            },
+          });
+        }
       }
 
       // Notify vendor
-      await db.notification.create({
-        data: {
-          userId: (await db.shop.findUnique({ where: { id: shopId }, select: { ownerId: true } }))!.ownerId,
-          title: 'Nouvelle commande',
-          message: `Commande ${orderNumber} reçue - ${totalAmount.toFixed(2)} CDF`,
-          type: 'ORDER',
-          link: `/orders/${order.id}`,
-          data: JSON.stringify({ orderId: order.id, orderNumber, totalAmount, shopId, itemCount: orderItemsData.length }),
-        },
-      });
+      if (shopOwner?.ownerId) {
+        await db.notification.create({
+          data: {
+            userId: shopOwner.ownerId,
+            title: 'Nouvelle commande',
+            message: `Commande ${orderNumber} reçue - ${totalAmount.toFixed(2)} CDF`,
+            type: 'ORDER',
+            link: `/orders/${order.id}`,
+            data: JSON.stringify({ orderId: order.id, orderNumber, totalAmount, shopId, itemCount: orderItemsData.length }),
+          },
+        });
+      }
 
       // Notify customer
       await db.notification.create({

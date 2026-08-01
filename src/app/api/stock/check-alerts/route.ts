@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       where: { id: productId },
       include: {
         shop: {
-          select: { id: true, name: true, ownerId: true, lowStockThreshold: true },
+          select: { id: true, name: true, ownerId: true, lowStockThreshold: true, slug: true },
         },
       },
     });
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
             title: '✅ Produit disponible !',
             message: `"${product.name}" de la boutique ${product.shop.name} est de nouveau en stock !`,
             type: 'RESTOCK',
-            link: `/shop/${product.shopId}`,
+            link: `/shop/${product.shop.slug || product.shop.id}`,
             data: notifData,
           })),
         });

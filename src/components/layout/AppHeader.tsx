@@ -352,10 +352,10 @@ export default function AppHeader() {
   const markNotificationRead = async (notifId: string) => {
     if (!token) return;
     try {
-      await fetch(`/api/notifications/${notifId}`, {
+      await fetch('/api/notifications', {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isRead: true }),
+        body: JSON.stringify({ notificationId: notifId }),
       });
       setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, isRead: true } : n));
       setNotificationCount(prev => Math.max(0, prev - 1));
@@ -367,14 +367,11 @@ export default function AppHeader() {
   const markAllNotificationsRead = async () => {
     if (!token) return;
     try {
-      const unreadNotifs = notifications.filter(n => !n.isRead);
-      await Promise.all(unreadNotifs.map(n =>
-        fetch(`/api/notifications/${n.id}`, {
-          method: 'PUT',
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ isRead: true }),
-        })
-      ));
+      await fetch('/api/notifications', {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ markAllRead: true }),
+      });
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
       setNotificationCount(0);
     } catch {
